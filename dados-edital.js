@@ -196,3 +196,47 @@ const EDITAL = [
     ]
   }
 ];
+
+/* =============================================================================
+   MAPA DE SUBTÓPICOS — liga cada id (pb-1, td-3, mf-5...) ao texto e à matéria.
+   Usado pelo Banco de Questões para filtrar/estudar por ponto do edital e para
+   mostrar desempenho por subtópico na aba Edital.
+   -----------------------------------------------------------------------------
+   MATERIA_SUB: chave "materia" das questões (balancos, termo...) -> prefixo id.
+============================================================================= */
+const MATERIA_SUB = {
+  balancos: "pb", termo: "td", opunit: "ou", fluidos: "mf",
+  calor: "tc", cinetica: "cr", controle: "co", quimica: "qu"
+};
+
+// id do subtópico -> { t: texto, materiaNome, materiaKey, prefixo }
+const SUBTOPICOS = (function(){
+  const map = {};
+  const invMat = {}; // prefixo -> materiaKey
+  Object.keys(MATERIA_SUB).forEach(k => invMat[MATERIA_SUB[k]] = k);
+  EDITAL.forEach(bloco => bloco.materias.forEach(m => {
+    (m.topicos || []).forEach(t => {
+      const prefixo = t.id.split("-")[0];
+      map[t.id] = {
+        t: t.t,
+        materiaNome: m.nome,
+        materiaKey: invMat[prefixo] || null,
+        prefixo
+      };
+    });
+  }));
+  return map;
+})();
+
+// Lista ordenada de subtópicos de uma matéria (pela chave das questões).
+function subtopicosDaMateria(materiaKey){
+  const pref = MATERIA_SUB[materiaKey];
+  if (!pref) return [];
+  return Object.keys(SUBTOPICOS)
+    .filter(id => SUBTOPICOS[id].prefixo === pref)
+    .sort((a,b)=>{
+      const na = parseInt(a.split("-")[1],10), nb = parseInt(b.split("-")[1],10);
+      return na - nb;
+    })
+    .map(id => ({ id, ...SUBTOPICOS[id] }));
+}

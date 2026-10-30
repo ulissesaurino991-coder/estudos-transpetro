@@ -53,6 +53,15 @@ document.querySelectorAll("#tabs-banca button").forEach(b=>{
 function todosTopicos(){const a=[];EDITAL.forEach(bl=>bl.materias.forEach(m=>m.topicos.forEach(t=>a.push({...t,materia:m.nome,peso:m.peso}))));return a;}
 function estadoTopico(id){return progresso[id]||0;}
 
+// Estatística de questões por subtópico do edital: total, respondidas, certas.
+function statsSubtopico(subId){
+  if(typeof BANCO==="undefined") return {total:0,resp:0,certas:0};
+  const qs=BANCO.filter(q=>q.sub===subId && !q.anulada && (!bancaGlobal||q.banca===bancaGlobal));
+  let resp=0,certas=0;
+  qs.forEach(q=>{const r=respostas[q.prova+"-"+q.n]; if(r){resp++; if(r.certo)certas++;}});
+  return {total:qs.length,resp,certas};
+}
+
 /* =============================================================================
    HOME
 ============================================================================= */
@@ -139,7 +148,18 @@ function renderEdital(){
         const est=estadoTopico(t.id);
         const cls=est===2?"s2":est===1?"s1":"";
         const simb=est===2?"✓":est===1?"~":"";
-        row.innerHTML=`<div class="estado ${cls}" data-id="${t.id}">${simb}</div><div>${t.t}</div>`;
+        const st=statsSubtopico(t.id);
+        let qinfo="";
+        if(st.total>0){
+          const pctA=st.resp?Math.round(st.certas/st.resp*100):null;
+          const cor=pctA===null?"var(--txt2)":pctA>=70?"var(--verde)":pctA>=50?"#b45309":"var(--vermelho)";
+          const matKey=(typeof SUBTOPICOS!=="undefined"&&SUBTOPICOS[t.id])?SUBTOPICOS[t.id].materiaKey:"";
+          qinfo=`<span class="qstat" style="color:${cor}" title="${st.resp} respondidas de ${st.total} · ${st.certas} certas">${st.total}q${st.resp?` · ${st.certas}/${st.resp} ✓`:""}</span>`+
+                `<button class="go-q" data-mat="${matKey||""}" data-sub="${t.id}" title="Resolver questões deste ponto">resolver →</button>`;
+        } else {
+          qinfo=`<span class="qstat" style="color:var(--txt2);opacity:.6" title="Nenhuma questão transcrita mapeada aqui ainda">0q</span>`;
+        }
+        row.innerHTML=`<div class="estado ${cls}" data-id="${t.id}">${simb}</div><div class="topico-txt">${t.t}</div><div class="topico-q">${qinfo}</div>`;
         tc.appendChild(row);
       });
       cont.appendChild(card);
@@ -148,6 +168,24 @@ function renderEdital(){
   cont.querySelectorAll(".estado").forEach(el=>{
     el.onclick=()=>{const id=el.dataset.id; progresso[id]=((progresso[id]||0)+1)%3; save(LS_KEY,progresso); renderEdital();};
   });
+  cont.querySelectorAll(".go-q").forEach(el=>{
+    el.onclick=()=>{ estudarPonto(el.dataset.mat, el.dataset.sub); };
+  });
+}
+// Vai para o Banco de Questões já filtrado por matéria + subtópico (estudar por ponto).
+function estudarPonto(materiaKey, subId){
+  if(materiaKey) filtroMateria=materiaKey;
+  filtroSub=subId||"todos";
+  filtroProva="todas"; filtroTipo="todos";
+  // navega para a aba Banco
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll("main > section").forEach(x=>x.classList.remove("active"));
+  const navBtn=document.querySelector('#nav button[data-s="banco"]');
+  if(navBtn) navBtn.classList.add("active");
+  document.getElementById("banco").classList.add("active");
+  document.getElementById("topbar-title").textContent=TITULOS.banco;
+  renderFiltrosBanco(); renderBanco();
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 function resetProgresso(){ if(confirm("Zerar TODO o progresso do edital? Não apaga o Diário nem as questões.")){progresso={};save(LS_KEY,progresso);renderEdital();renderHome();} }
 
@@ -238,7 +276,7 @@ function irParaBanco(provaId){
 /* =============================================================================
    BANCO DE QUESTÕES (real, interativo)
 ============================================================================= */
-let filtroProva="todas", filtroMateria="todas", filtroTipo="todos";
+let filtroProva="todas", filtroMateria="todas", filtroTipo="todos", filtroSub="todos";
 function renderFiltrosBanco(){
   if(typeof BANCO==="undefined") return;
   const provasSet=[...new Set(BANCO.filter(q=>!bancaGlobal||q.banca===bancaGlobal).map(q=>q.prova))];
@@ -251,7 +289,22 @@ function renderFiltrosBanco(){
   let fm=`<button data-m="todas" class="${filtroMateria==='todas'?'on':''}">Todas matérias</button>`;
   Object.keys(ASSUNTOS).forEach(k=>fm+=`<button data-m="${k}" class="${filtroMateria===k?'on':''}">${ASSUNTOS[k].split(" (")[0].split("/")[0].trim()}</button>`);
   document.getElementById("filtros-materia").innerHTML=fm;
-  document.querySelectorAll("#filtros-materia button").forEach(b=>b.onclick=()=>{filtroMateria=b.dataset.m;renderFiltrosBanco();renderBanco();});
+  document.querySelectorAll("#filtros-materia button").forEach(b=>b.onclick=()=>{filtroMateria=b.dataset.m;filtroSub="todos";renderFiltrosBanco();renderBanco();});
+
+  // Subtópico — só aparece quando uma matéria está selecionada (estudar por ponto do edital)
+  const subBox=document.getElementById("filtros-subtopico");
+  if(filtroMateria!=="todas" && typeof subtopicosDaMateria!=="undefined"){
+    const subs=subtopicosDaMateria(filtroMateria);
+    // quantas questões (do filtro de banca/prova atual) em cada subtópico
+    const base=BANCO.filter(q=>(!bancaGlobal||q.banca===bancaGlobal)&&(filtroProva==="todas"||q.prova===filtroProva)&&q.materia===filtroMateria);
+    const cont={}; base.forEach(q=>{cont[q.sub]=(cont[q.sub]||0)+1;});
+    let fs=`<span class="fsub-lab">📍 Ponto do edital:</span><button data-s="todos" class="${filtroSub==='todos'?'on':''}">Todos (${base.length})</button>`;
+    subs.forEach(s=>{const n=cont[s.id]||0; fs+=`<button data-s="${s.id}" class="${filtroSub===s.id?'on':''}" title="${s.t.replace(/"/g,'&quot;')}"${n===0?' disabled style="opacity:.4"':''}>${s.id} · ${s.t.length>42?s.t.slice(0,41)+'…':s.t} (${n})</button>`;});
+    subBox.innerHTML=fs; subBox.style.display="flex";
+    subBox.querySelectorAll("button[data-s]").forEach(b=>b.onclick=()=>{filtroSub=b.dataset.s;renderFiltrosBanco();renderBanco();});
+  } else {
+    subBox.innerHTML=""; subBox.style.display="none"; if(filtroMateria==="todas") filtroSub="todos";
+  }
 
   document.getElementById("filtros-tipo").innerHTML=`
     <button data-t="todos" class="${filtroTipo==='todos'?'on':''}">Todos tipos</button>
@@ -266,34 +319,48 @@ function renderBanco(){
     (!bancaGlobal||q.banca===bancaGlobal) &&
     (filtroProva==="todas"||q.prova===filtroProva) &&
     (filtroMateria==="todas"||q.materia===filtroMateria) &&
+    (filtroSub==="todos"||q.sub===filtroSub) &&
     (filtroTipo==="todos"||q.tipo===filtroTipo));
-  const respN=lista.filter(q=>respostas[q.prova+"-"+q.n]).length;
-  const certas=lista.filter(q=>respostas[q.prova+"-"+q.n]&&respostas[q.prova+"-"+q.n].certo).length;
-  document.getElementById("banco-sub").innerHTML=`${lista.length} questões reais · você respondeu <b>${respN}</b> (${certas} certas). Clique na alternativa para responder; o gabarito aparece em seguida.`;
+  const anuladas=lista.filter(q=>q.anulada).length;
+  const validas=lista.filter(q=>!q.anulada);
+  const respN=validas.filter(q=>respostas[q.prova+"-"+q.n]).length;
+  const certas=validas.filter(q=>respostas[q.prova+"-"+q.n]&&respostas[q.prova+"-"+q.n].certo).length;
+  const subTxt=(filtroSub!=="todos"&&typeof SUBTOPICOS!=="undefined"&&SUBTOPICOS[filtroSub])?` · 📍 <b>${filtroSub}</b> ${SUBTOPICOS[filtroSub].t}`:"";
+  document.getElementById("banco-sub").innerHTML=`${lista.length} questões${anuladas?` (<b>${anuladas}</b> anulada${anuladas>1?'s':''})`:''} · você respondeu <b>${respN}</b> (${certas} certas)${subTxt}. Clique na alternativa para responder; o gabarito aparece em seguida.`;
   const cont=document.getElementById("banco-cont");
   if(!lista.length){cont.innerHTML="<p class='sub'>Nenhuma questão com esse filtro.</p>";return;}
   cont.innerHTML=lista.map(q=>{
     const key=q.prova+"-"+q.n;
-    const r=respostas[key];
+    const anulada=!!q.anulada;
+    const r=anulada?null:respostas[key];
     const letras=["A","B","C","D","E"];
+    const subInfo=(typeof SUBTOPICOS!=="undefined"&&q.sub&&SUBTOPICOS[q.sub])?SUBTOPICOS[q.sub]:null;
+    const subTag=subInfo?`<span class="tag sub" title="Assunto provável (classificação automática) — ${subInfo.t.replace(/"/g,'&quot;')}">📍 ${q.sub} ${subInfo.t.length>34?subInfo.t.slice(0,33)+'…':subInfo.t}</span>`:"";
     const alts=q.alt.map((a,i)=>{
       let cls="alt";
-      if(r){ if(letras[i]===q.gab) cls+=" certa"; else if(letras[i]===r.letra) cls+=" errada"; }
+      if(anulada) cls+=" anulada-alt";
+      else if(r){ if(letras[i]===q.gab) cls+=" certa"; else if(letras[i]===r.letra) cls+=" errada"; }
       return `<div class="${cls}" data-key="${key}" data-letra="${letras[i]}"><span class="letra">${letras[i]}</span><span>${a}</span></div>`;
     }).join("");
-    return `<div class="q ${r?'respondida':''}" id="q-${key}">
+    const gabLine=anulada
+      ? `<div class="gab anulada-gab">⛔ Questão <b>ANULADA</b> pela banca${q.motivoAnula?` — ${q.motivoAnula}`:""}. Não entra na pontuação.</div>`
+      : `<div class="gab">Gabarito: <b>${q.gab}</b>${r?(r.certo?" — você acertou! ✅":" — você marcou "+r.letra+" ❌"):""}</div>`;
+    return `<div class="q ${anulada?'anulada':''} ${r?'respondida':''}" id="q-${key}">
       <div class="meta"><span class="tag">${nome[q.prova]||q.prova}</span><span class="tag">Q${q.n}</span>
         <span class="tag">${ASSUNTOS[q.materia]?ASSUNTOS[q.materia].split(" (")[0].split("/")[0].trim():q.materia}</span>
-        <span class="tag ${q.tipo}">${q.tipo==="calc"?"🧮 cálculo":"💡 conceitual"}</span></div>
+        ${subTag}
+        <span class="tag ${q.tipo}">${q.tipo==="calc"?"🧮 cálculo":"💡 conceitual"}</span>
+        ${anulada?'<span class="tag anulada-tag">⛔ ANULADA</span>':''}</div>
       <div class="enun">${q.n}. ${q.enun}</div>
       <div class="alts">${alts}</div>
-      <div class="gab">Gabarito: <b>${q.gab}</b>${r?(r.certo?" — você acertou! ✅":" — você marcou "+r.letra+" ❌"):""}</div>
+      ${gabLine}
     </div>`;
   }).join("");
   cont.querySelectorAll(".alt").forEach(el=>el.onclick=()=>{
     const key=el.dataset.key, letra=el.dataset.letra;
     if(respostas[key]) return; // já respondida
     const q=BANCO.find(x=>x.prova+"-"+x.n===key);
+    if(q.anulada) return; // anulada não é respondível
     respostas[key]={letra,certo:letra===q.gab}; save(LS_RESP,respostas);
     renderBanco(); renderHome();
   });
