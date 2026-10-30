@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concursos · Transpetro — Engenharia Química</title>
+<style>
+  :root{
+    --azul:#2563eb; --azul2:#1d4ed8; --verde:#16a34a; --verde-bg:#dcfce7;
+    --amarelo:#ca8a04; --amarelo-bg:#fef9c3; --vermelho:#dc2626; --vermelho-bg:#fee2e2;
+    --bg:#f1f5f9; --card:#ffffff; --sidebar:#0f172a; --sidebar2:#1e293b;
+    --txt:#0f172a; --txt2:#64748b; --txt3:#94a3b8; --borda:#e2e8f0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;display:flex;min-height:100vh}
+
+  /* SIDEBAR */
+  #sidebar{width:230px;background:var(--sidebar);color:#cbd5e1;flex:0 0 230px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+  #sidebar .brand{padding:18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e293b}
+  #sidebar .brand .logo{width:34px;height:34px;border-radius:8px;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+  #sidebar .brand b{color:#fff;font-size:.95rem;display:block}
+  #sidebar .brand span{font-size:.72rem;color:#94a3b8}
+  #sidebar nav{padding:10px 8px;flex:1}
+  #sidebar nav button{width:100%;text-align:left;background:none;border:none;color:#cbd5e1;padding:11px 12px;font-size:.88rem;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:10px;margin-bottom:2px}
+  #sidebar nav button:hover{background:#1e293b;color:#fff}
+  #sidebar nav button.active{background:var(--azul);color:#fff;font-weight:600}
+  #sidebar nav .ico{width:18px;text-align:center}
+  #sidebar .foot{padding:14px 16px;border-top:1px solid #1e293b;font-size:.72rem;color:#64748b}
+  #sidebar .count{background:#1e293b;border-radius:10px;padding:10px 12px;margin:8px;text-align:center}
+  #sidebar .count .d{font-size:1.5rem;font-weight:800;color:#fff}
+  #sidebar .count .l{font-size:.7rem;color:#94a3b8}
+
+  /* CONTEÚDO */
+  #main{flex:1;min-width:0}
+  #topbar{background:var(--card);border-bottom:1px solid var(--borda);padding:16px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:10}
+  #topbar h1{font-size:1.1rem}
+  #topbar .sub{font-size:.8rem;color:var(--txt2)}
+  .tabs-banca{display:flex;gap:6px}
+  .tabs-banca button{background:var(--bg);border:1px solid var(--borda);color:var(--txt2);padding:7px 16px;border-radius:8px;font-size:.82rem;cursor:pointer;font-weight:600}
+  .tabs-banca button.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+  main{max-width:1100px;margin:0 auto;padding:24px 28px}
+  section{display:none}
+  section.active{display:block;animation:fade .25s}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+  h2{font-size:1.3rem;margin-bottom:4px}
+  .sub{color:var(--txt2);font-size:.9rem;margin-bottom:18px}
+  h3{font-size:1.02rem;margin-bottom:10px}
+
+  /* CARDS DE MÉTRICA */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+  .mcard{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px}
+  .mcard .cap{font-size:.72rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;font-weight:600}
+  .mcard .big{font-size:2rem;font-weight:800;margin-top:6px}
+  .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}
+  .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
+
+  .panel{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px;margin-bottom:16px}
+  .progress{height:10px;border-radius:6px;background:var(--bg);overflow:hidden;margin-top:8px}
+  .progress>div{height:100%;background:linear-gradient(90deg,var(--verde),#4ade80);transition:width .4s}
+  .progress.amarelo>div{background:linear-gradient(90deg,var(--amarelo),#facc15)}
+
+  /* BARRAS */
+  .bars .row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.84rem}
+  .bars .nm{flex:0 0 42%;color:var(--txt)}
+  .bars .track{flex:1;height:20px;background:var(--bg);border-radius:6px;overflow:hidden}
+  .bars .fill{height:100%;display:flex;align-items:center;padding-left:8px;font-size:.72rem;color:#fff;font-weight:700;min-width:fit-content;white-space:nowrap}
+
+  /* EDITAL */
+  .materia{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:14px}
+  .materia-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .materia-head h4{font-size:1rem}
+  .peso{font-size:.7rem;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .p5{background:var(--vermelho-bg);color:var(--vermelho)}.p4{background:#ffedd5;color:#c2410c}.p3{background:var(--amarelo-bg);color:var(--amarelo)}
+  .obs{font-size:.82rem;color:var(--txt2);margin:8px 0 10px;padding:9px 11px;background:var(--bg);border-radius:8px;border-left:3px solid var(--azul)}
+  .topico{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px solid var(--borda);font-size:.88rem}
+  .estado{flex:0 0 auto;width:24px;height:24px;border-radius:6px;border:2px solid var(--borda);cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.85rem;user-select:none;transition:.15s;background:#fff}
+  .estado.s1{background:var(--amarelo);border-color:var(--amarelo);color:#fff}
+  .estado.s2{background:var(--verde);border-color:var(--verde);color:#fff}
+  .legenda{font-size:.78rem;color:var(--txt2);margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap}
+  .legenda span{display:flex;align-items:center;gap:5px}
+  .dot{width:15px;height:15px;border-radius:4px;display:inline-block;border:2px solid}
+
+  .insight{background:var(--card);border:1px solid var(--borda);border-left:4px solid var(--amarelo);border-radius:10px;padding:13px 15px;margin-bottom:10px}
+  .insight b{color:var(--txt);display:block;margin-bottom:3px;font-size:.92rem}
+  .insight span{font-size:.85rem;color:var(--txt2)}
+
+  /* ANÁLISE MATÉRIA */
+  .am{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:12px}
+  .am .amh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+  .am p{font-size:.85rem;margin:7px 0;color:var(--txt)}
+  .am .lab{font-size:.72rem;font-weight:700;color:var(--azul);text-transform:uppercase}
+  .am .ninja-box{background:var(--amarelo-bg);border-radius:8px;padding:9px 11px;margin-top:8px}
+  .am .ninja-box .lab{color:var(--amarelo)}
+
+  /* TABELA EVOLUÇÃO */
+  table.evo{width:100%;border-collapse:collapse;font-size:.78rem;min-width:620px}
+  table.evo th{color:var(--txt2);padding:7px;font-weight:600}
+  table.evo td{padding:7px;text-align:center;border-radius:5px}
+  table.evo td.nm{text-align:left;color:var(--txt)}
+
+  /* CRONOGRAMA */
+  .crono-sem{background:var(--card);border:1px solid var(--borda);border-radius:14px;margin-bottom:16px;overflow:hidden}
+  .crono-sem .shead{background:#0f172a;color:#fff;padding:13px 16px}
+  .crono-sem .shead h4{font-size:.98rem}
+  .crono-sem .shead p{font-size:.8rem;color:#cbd5e1;margin-top:3px}
+  .crono-dia{display:flex;gap:12px;padding:11px 16px;border-top:1px solid var(--borda);font-size:.85rem;align-items:flex-start}
+  .crono-dia .d{flex:0 0 86px;font-weight:700;color:var(--txt)}
+  .crono-dia .hh{flex:0 0 52px;font-size:.72rem;color:var(--txt2);background:var(--bg);padding:2px 7px;border-radius:5px;text-align:center}
+  .crono-dia.sim{background:#eff6ff}.crono-dia.rev{background:#f0fdf4}
+  .crono-dia.prova{background:#fef2f2}.crono-dia.prova .d{color:var(--vermelho)}
+
+  /* REFAZER PROVAS */
+  .prova-card{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:12px}
+  .prova-card .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .prova-card .ph h4{font-size:.98rem}
+  .prova-card .pobs{font-size:.8rem;color:var(--txt2);margin:6px 0 10px}
+  .banca-tag{font-size:.66rem;padding:3px 9px;border-radius:20px;font-weight:700}
+  .banca-TP{background:var(--verde-bg);color:var(--verde)}.banca-PB{background:#dbeafe;color:var(--azul)}
+  .status-sel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .status-sel button{background:var(--bg);border:1px solid var(--borda);color:var(--txt2);padding:6px 12px;border-radius:20px;font-size:.78rem;cursor:pointer}
+  .status-sel button.on-resolvido{background:var(--verde);color:#fff;border-color:var(--verde)}
+  .status-sel button.on-proxima{background:var(--amarelo);color:#fff;border-color:var(--amarelo)}
+  .status-sel button.on-afazer{background:var(--vermelho);color:#fff;border-color:var(--vermelho)}
+  .nota-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.82rem}
+  .nota-row label{color:var(--txt2)}
+  .nota-row input{width:56px;background:var(--bg);border:1px solid var(--borda);color:var(--txt);border-radius:6px;padding:5px 7px;font-size:.85rem}
+  .nota-row .pc{font-weight:700;color:var(--verde)}
+  .btn{background:var(--azul);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:.82rem;cursor:pointer;font-weight:600}
+  .btn.ghost{background:var(--bg);color:var(--txt);border:1px solid var(--borda)}
+
+  /* BANCO DE QUESTÕES */
+  .filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .filtros button{background:var(--card);border:1px solid var(--borda);color:var(--txt2);padding:6px 13px;border-radius:20px;font-size:.8rem;cursor:pointer}
+  .filtros button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .q{background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:15px;margin-bottom:12px}
+  .q .meta{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .tag{font-size:.68rem;padding:2px 9px;border-radius:20px;background:var(--bg);color:var(--txt2);font-weight:600}
+  .tag.calc{background:#dbeafe;color:var(--azul)}.tag.conc{background:#f3e8ff;color:#7c3aed}
+  .q .enun{font-size:.9rem;margin-bottom:10px}
+  .q .alts{display:flex;flex-direction:column;gap:6px}
+  .q .alt{display:flex;gap:9px;padding:9px 11px;border:1px solid var(--borda);border-radius:8px;font-size:.85rem;cursor:pointer;background:#fff}
+  .q .alt:hover{background:var(--bg)}
+  .q .alt .letra{font-weight:700;color:var(--txt2);flex:0 0 18px}
+  .q .alt.certa{background:var(--verde-bg);border-color:var(--verde)}
+  .q .alt.errada{background:var(--vermelho-bg);border-color:var(--vermelho)}
+  .q .gab{margin-top:9px;font-size:.82rem;color:var(--verde);font-weight:600;display:none}
+  .q.respondida .gab{display:block}
+
+  .trilha{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:12px}
+  .trilha h4{font-size:1rem;margin-bottom:8px;color:var(--azul)}
+  .trilha ul{margin:6px 0 6px 18px;font-size:.84rem;color:var(--txt2)}
+  .trilha ul li{margin-bottom:4px}
+  .trilha .como{font-size:.84rem;background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:6px}
+  .trilha .graca{font-size:.82rem;background:var(--verde-bg);border-radius:8px;padding:9px 11px;margin-top:6px;color:#166534}
+
+  .fase{background:var(--card);border:1px solid var(--borda);border-radius:14px;margin-bottom:12px;overflow:hidden}
+  .fase .fh{padding:13px 16px;color:#fff}
+  .fase .fh h4{font-size:1rem}.fase .fh p{font-size:.82rem;opacity:.92;margin-top:3px}
+  .fase ul{margin:10px 0;padding:10px 16px 4px 34px;font-size:.86rem}
+  .fase ul li{margin-bottom:6px}
+  .regra{background:var(--card);border:1px solid var(--borda);border-radius:10px;padding:12px 14px;margin-bottom:9px;display:flex;gap:11px}
+  .regra .rn{flex:0 0 28px;height:28px;border-radius:50%;background:var(--azul);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+  .regra b{display:block;font-size:.9rem;margin-bottom:2px}
+  .regra span{font-size:.84rem;color:var(--txt2)}
+  .ordem{background:var(--card);border:1px solid var(--borda);border-radius:10px;padding:11px 13px;margin-bottom:8px;display:flex;gap:11px;align-items:flex-start}
+  .ordem .op{flex:0 0 26px;height:26px;border-radius:7px;background:var(--bg);border:1px solid var(--borda);color:var(--azul);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.82rem}
+  .ordem b{font-size:.88rem}.ordem span{font-size:.82rem;color:var(--txt2);display:block;margin-top:2px}
+
+  .diario textarea{width:100%;min-height:220px;background:var(--card);color:var(--txt);border:1px solid var(--borda);border-radius:12px;padding:13px;font-family:inherit;font-size:.9rem;resize:vertical}
+  .saved{font-size:.78rem;color:var(--verde);margin-top:6px;height:16px}
+
+  @media(max-width:760px){
+    body{flex-direction:column}
+    #sidebar{width:100%;flex:none;height:auto;position:relative;flex-direction:row;overflow-x:auto}
+    #sidebar nav{display:flex;flex-direction:row}
+    #sidebar .brand,#sidebar .foot,#sidebar .count{display:none}
+    #sidebar nav button{white-space:nowrap}
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand">
+    <div class="logo">P</div>
+    <div><b>Concursos</b><span>Petrobras · Transpetro</span></div>
+  </div>
+  <div class="count"><div class="d" id="side-dias">—</div><div class="l">dias até 06/12</div></div>
+  <nav id="nav">
+    <button data-s="dash" class="active"><span class="ico">🏠</span> Home</button>
+    <button data-s="edital"><span class="ico">📋</span> Edital</button>
+    <button data-s="estrategia"><span class="ico">🥷</span> Estratégia</button>
+    <button data-s="crono"><span class="ico">📅</span> Cronograma</button>
+    <button data-s="provas"><span class="ico">🔁</span> Refazer Provas</button>
+    <button data-s="banco"><span class="ico">🎯</span> Questões</button>
+    <button data-s="analise"><span class="ico">📈</span> Análise</button>
+    <button data-s="diario"><span class="ico">📝</span> Diário de Erros</button>
+  </nav>
+  <div class="foot">Progresso salvo neste navegador.<br>🥷 Reta final para 06/12/2026.</div>
+</aside>
+
+<div id="main">
+  <div id="topbar">
+    <div>
+      <h1 id="topbar-title">Home</h1>
+      <div class="sub">Transpetro — Engenharia Química (Ênfase 27) · Cesgranrio</div>
+    </div>
+    <div class="tabs-banca" id="tabs-banca">
+      <button data-b="" class="on">Todas</button>
+      <button data-b="TP">Transpetro</button>
+      <button data-b="PB">Petrobras</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- HOME -->
+    <section id="dash" class="active">
+      <h2>Painel de Comando</h2>
+      <p class="sub">Sua visão geral da preparação. Marque tópicos no Edital e registre notas em Refazer Provas para alimentar estes números.</p>
+      <div class="cards" id="home-cards"></div>
+      <div class="panel">
+        <h3>Força por assunto — quanto você já cobriu</h3>
+        <div id="home-bars" class="bars"></div>
+      </div>
+      <div class="panel">
+        <h3>🎯 Onde investir agora (prioridade = incidência × o que falta)</h3>
+        <div id="prioridades"></div>
+      </div>
+    </section>
+
+    <!-- EDITAL -->
+    <section id="edital">
+      <h2>Edital Verticalizado</h2>
+      <p class="sub">Todo o Anexo IV, item por item. Clique no quadrado para marcar seu domínio. Meta: 99/99 tópicos tocados.</p>
+      <div class="legenda">
+        <span><i class="dot" style="border-color:var(--borda)"></i> Não vi</span>
+        <span><i class="dot" style="border-color:var(--amarelo);background:var(--amarelo)"></i> Revisei</span>
+        <span><i class="dot" style="border-color:var(--verde);background:var(--verde)"></i> Domino</span>
+      </div>
+      <div id="edital-cont"></div>
+      <button class="btn ghost" onclick="resetProgresso()">↺ Zerar progresso do edital</button>
+    </section>
+
+    <!-- ESTRATÉGIA -->
+    <section id="estrategia">
+      <h2>🥷 Estratégia Ninja</h2>
+      <p class="sub" id="estrat-sub">O plano mestre para ver 100% do edital, refazer as 9 provas e passar por todas as matérias até 06/12.</p>
+      <div class="cards" id="estrat-metas"></div>
+      <h3>📅 As 3 fases do mês</h3><div id="estrat-fases"></div>
+      <h3>⚔️ As 7 regras de ouro</h3><div id="estrat-regras"></div>
+      <h3>🔁 Ordem inteligente das 9 provas</h3><div id="estrat-ordem"></div>
+    </section>
+
+    <!-- CRONOGRAMA -->
+    <section id="crono">
+      <h2>Cronograma de Reta Final</h2>
+      <p class="sub">37 dias · 2h/dia útil (1h30 específicas + 30min Gerais) · Sábados = simulado Transpetro 4h30 · Petrobras nos dias úteis.</p>
+      <div id="crono-cont"></div>
+      <div class="panel"><h3>🎯 Táticas para o dia 06/12</h3><div id="taticas"></div></div>
+    </section>
+
+    <!-- REFAZER PROVAS -->
+    <section id="provas">
+      <h2>Refazer as 9 Provas</h2>
+      <p class="sub">Registre status e nota de cada prova. A Transpetro 2023 (⭐) é o seu espelho — deixe para a reta final.</p>
+      <div class="cards" id="provas-stats"></div>
+      <div id="provas-cont"></div>
+    </section>
+
+    <!-- QUESTÕES -->
+    <section id="banco">
+      <h2>Banco de Questões reais</h2>
+      <p class="sub" id="banco-sub">Questões reais das 9 provas, com alternativas e gabarito. Clique na alternativa para responder.</p>
+      <div class="filtros" id="filtros-prova"></div>
+      <div class="filtros" id="filtros-materia"></div>
+      <div class="filtros" id="filtros-tipo"></div>
+      <div id="banco-cont"></div>
+    </section>
+
+    <!-- ANÁLISE -->
+    <section id="analise">
+      <h2>Análise das Provas (Cesgranrio)</h2>
+      <p class="sub">9 provas (2010–2023), 450 questões específicas tabuladas. A Transpetro 2023 é o seu espelho.</p>
+      <div class="panel"><h3 id="incid-titulo">Incidência por assunto</h3><div id="incid-bars" class="bars"></div></div>
+      <div class="panel"><h3>Evolução ao longo dos anos (2010 → 2023)</h3><div id="evolucao" style="overflow-x:auto"></div></div>
+      <h3>🥷 Análise ninja por matéria</h3><div id="analise-materia"></div>
+      <h3>🔎 Padrões da banca</h3><div id="padroes"></div>
+      <h3>📚 Gerais do zero — Português &amp; Inglês</h3><div id="trilha-gerais"></div>
+    </section>
+
+    <!-- DIÁRIO -->
+    <section id="diario">
+      <h2>Diário de Erros</h2>
+      <p class="sub">A arma secreta da reta final: anote TODO erro dos simulados. Reler isto vale ouro. Salva automático.</p>
+      <div class="diario">
+        <textarea id="diario-txt" placeholder="Ex.: Simulado 1 (TP2011), Q34 — errei a unidade (pediam W, calculei kW). Revisar conversão.
+Q42 — esqueci a resistência de convecção na parede composta. Revisar tópico tc-2."></textarea>
+        <div class="saved" id="diario-saved"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="dados-edital.js"></script>
+<script src="dados-estrategia.js"></script>
+<script src="dados-provas.js"></script>
+<script src="dados-cronograma.js"></script>
+<script src="dados-questoes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
