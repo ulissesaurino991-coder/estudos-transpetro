@@ -12,7 +12,8 @@ function save(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
 let progresso=load(LS_KEY);
 let respostas=load(LS_RESP);
 
-const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",analise:"Análise das Provas",diario:"Diário de Erros"};
+const LS_ERROS="transpetro_eq_erros_v1"; // caderno de erros (Leitner + repetição espaçada)
+const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",analise:"Análise das Provas",erros:"Caderno de Erros"};
 
 /* ---------- navegação ---------- */
 document.querySelectorAll("#nav button").forEach(b=>{
@@ -25,6 +26,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     if(b.dataset.s==="dash") renderHome();
     if(b.dataset.s==="provas") renderProvas();
     if(b.dataset.s==="estrategia") renderEstrategia();
+    if(b.dataset.s==="erros") renderErros();
     window.scrollTo({top:0,behavior:"smooth"});
   };
 });
@@ -338,14 +340,183 @@ function renderAnalise(){
 }
 
 /* =============================================================================
-   DIÁRIO
+   CADERNO DE ERROS — sistema de Leitner + repetição espaçada
+   -----------------------------------------------------------------------------
+   Base científica:
+     • Active recall: você vê a FRENTE (pergunta) e tenta lembrar antes de abrir o verso.
+     • Repetição espaçada / Leitner: cada card tem uma "caixa" (1 a 5). Acertou → sobe
+       de caixa (revisa mais tarde). Errou → volta pra caixa 1 (revisa amanhã).
+   Intervalos por caixa (dias) — calibrados para a reta final (~37 dias):
+     caixa 1 = 1 dia | 2 = 2 dias | 3 = 4 dias | 4 = 7 dias | 5 = 14 dias
+   Card "vence" quando hoje >= próxima data de revisão → aparece em "Revisar hoje".
 ============================================================================= */
-(function(){
-  const ta=document.getElementById("diario-txt"), saved=document.getElementById("diario-saved");
-  ta.value=localStorage.getItem(LS_DIARIO)||"";
-  let timer;
-  ta.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{localStorage.setItem(LS_DIARIO,ta.value);saved.textContent="✓ salvo";setTimeout(()=>saved.textContent="",1500);},400);};
-})();
+const LEITNER_INTERVALOS={1:1,2:2,3:4,4:7,5:14};
+let erros=JSON.parse(localStorage.getItem(LS_ERROS)||"[]");
+function salvarErros(){ localStorage.setItem(LS_ERROS,JSON.stringify(erros)); }
+function hojeISO(){ const d=new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); }
+function addDias(iso,n){ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function cardVence(c){ return c.proxima<=hojeISO(); }
+function nomeMateria(k){ return (typeof ASSUNTOS!=="undefined"&&ASSUNTOS[k])?ASSUNTOS[k].split(" (")[0].split("/")[0].trim():(k==="port"?"Português":k==="ingles"?"Inglês":k); }
+
+// migração: se houver diário antigo em texto, oferece importação uma vez
+function diarioAntigo(){ return localStorage.getItem(LS_DIARIO)||""; }
+
+let erroTabAtiva="revisar";
+function renderErros(){
+  // popular select de matérias (uma vez)
+  const sel=document.getElementById("erro-materia");
+  if(sel && !sel.dataset.ready){
+    let opts="";
+    if(typeof ASSUNTOS!=="undefined") Object.keys(ASSUNTOS).forEach(k=>opts+=`<option value="${k}">${nomeMateria(k)}</option>`);
+    opts+=`<option value="port">Português</option><option value="ingles">Inglês</option><option value="outro">Outro</option>`;
+    sel.innerHTML=opts; sel.dataset.ready="1";
+  }
+  // stats
+  const total=erros.length;
+  const venc=erros.filter(cardVence).length;
+  const dominados=erros.filter(c=>c.caixa>=5).length;
+  const novos=erros.filter(c=>c.caixa===1).length;
+  document.getElementById("erros-stats").innerHTML=`
+    <div class="mcard"><div class="cap">🔁 Para revisar hoje</div><div class="big ${venc?'vermelho':'verde'}" style="${venc?'color:var(--vermelho)':''}">${venc}</div><div class="note">cards vencidos</div></div>
+    <div class="mcard"><div class="cap">📚 Total de cards</div><div class="big azul">${total}</div><div class="note">erros registrados</div></div>
+    <div class="mcard"><div class="cap">🔴 Ainda frescos</div><div class="big amarelo">${novos}</div><div class="note">na caixa 1</div></div>
+    <div class="mcard"><div class="cap">✅ Quase dominados</div><div class="big verde">${dominados}</div><div class="note">na caixa 5</div></div>`;
+  renderErrosTab();
+}
+
+document.querySelectorAll("#erros-tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#erros-tabs button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); erroTabAtiva=b.dataset.e; renderErrosTab();
+});
+
+function renderErrosTab(){
+  ["revisar","add","todos","como"].forEach(t=>{
+    document.getElementById("erros-"+t).style.display = (t===erroTabAtiva)?"block":"none";
+  });
+  if(erroTabAtiva==="revisar") renderRevisarHoje();
+  if(erroTabAtiva==="todos") renderTodosErros();
+  if(erroTabAtiva==="como") renderComoFunciona();
+}
+
+function cardHTML(c,modo){
+  const cx=c.caixa;
+  const letra=nomeMateria(c.materia);
+  const fonte=c.fonte?`<div class="efonte">📍 ${c.fonte}</div>`:"";
+  let acoes="";
+  if(modo==="revisar"){
+    acoes=`<button class="btn sm ghost" onclick="abrirCard(${c.id})">Mostrar resposta</button>
+      <span id="julgar-${c.id}" style="display:none">
+        <button class="btn sm verde" onclick="julgarCard(${c.id},true)">✓ Acertei (subir)</button>
+        <button class="btn sm vermelho" onclick="julgarCard(${c.id},false)">✗ Errei (volta p/ caixa 1)</button>
+      </span>`;
+  } else {
+    acoes=`<button class="btn sm ghost" onclick="abrirCard(${c.id})">Ver resposta</button>
+      <button class="btn sm ghost" onclick="excluirCard(${c.id})">🗑 Excluir</button>`;
+  }
+  return `<div class="ecard" id="ecard-${c.id}">
+    <div class="etop"><div class="ebadges">
+      <span class="caixa-tag caixa-${cx}">Caixa ${cx}/5</span>
+      <span class="caixa-tag">${letra}</span>
+      ${modo!=="revisar"?`<span class="caixa-tag">revisa em ${c.proxima}</span>`:""}
+    </div></div>
+    <div class="frente">${c.frente}</div>
+    <div class="verso">${c.verso}</div>
+    ${fonte}
+    <div class="eacoes">${acoes}</div>
+  </div>`;
+}
+
+function renderRevisarHoje(){
+  const cont=document.getElementById("erros-revisar");
+  const fila=erros.filter(cardVence).sort((a,b)=>a.caixa-b.caixa);
+  if(!erros.length){
+    cont.innerHTML=`<div class="vazio"><div class="big">🧠</div><b>Seu caderno está vazio.</b><br>Clique em "➕ Adicionar erro" e transforme seu primeiro erro num card.
+      ${diarioAntigo()?`<br><br><button class="btn" onclick="importarDiario()">Importar meu diário de erros antigo</button>`:""}</div>`;
+    return;
+  }
+  if(!fila.length){
+    cont.innerHTML=`<div class="vazio"><div class="big">🎉</div><b>Nada para revisar hoje!</b><br>Você está em dia com a repetição espaçada. Volte amanhã — o app agenda os próximos cards sozinho.</div>`;
+    return;
+  }
+  cont.innerHTML=`<p class="sub">Tente lembrar a resposta <b>de cabeça</b> antes de abrir (active recall). Depois marque se acertou.</p>`+
+    fila.map(c=>cardHTML(c,"revisar")).join("");
+}
+
+function renderTodosErros(){
+  const cont=document.getElementById("erros-todos");
+  if(!erros.length){ cont.innerHTML=`<div class="vazio"><div class="big">📚</div>Nenhum card ainda.</div>`; return; }
+  const ordenados=[...erros].sort((a,b)=>a.caixa-b.caixa || a.proxima.localeCompare(b.proxima));
+  cont.innerHTML=ordenados.map(c=>cardHTML(c,"todos")).join("");
+}
+
+function abrirCard(id){
+  document.getElementById("ecard-"+id).classList.add("aberto");
+  const j=document.getElementById("julgar-"+id); if(j) j.style.display="inline";
+}
+function julgarCard(id,acertou){
+  const c=erros.find(x=>x.id===id); if(!c) return;
+  if(acertou){ c.caixa=Math.min(5,c.caixa+1); } else { c.caixa=1; }
+  c.proxima=addDias(hojeISO(),LEITNER_INTERVALOS[c.caixa]);
+  c.revisoes=(c.revisoes||0)+1;
+  salvarErros(); renderErros();
+}
+function excluirCard(id){
+  if(!confirm("Excluir este card do caderno de erros?")) return;
+  erros=erros.filter(x=>x.id!==id); salvarErros(); renderErros();
+}
+
+// adicionar card
+document.getElementById("erro-salvar").onclick=()=>{
+  const materia=document.getElementById("erro-materia").value;
+  const fonte=document.getElementById("erro-fonte").value.trim();
+  const frente=document.getElementById("erro-frente").value.trim();
+  const verso=document.getElementById("erro-verso").value.trim();
+  const saved=document.getElementById("erro-saved");
+  if(!frente||!verso){ saved.style.color="var(--vermelho)"; saved.textContent="Preencha a frente e o verso."; return; }
+  erros.push({id:Date.now(),materia,fonte,frente,verso,caixa:1,proxima:hojeISO(),criado:hojeISO(),revisoes:0});
+  salvarErros();
+  document.getElementById("erro-frente").value=""; document.getElementById("erro-verso").value=""; document.getElementById("erro-fonte").value="";
+  saved.style.color="var(--verde)"; saved.textContent="✓ card salvo — já entra na revisão de hoje";
+  setTimeout(()=>saved.textContent="",2500);
+  renderErros();
+};
+
+function importarDiario(){
+  const txt=diarioAntigo(); if(!txt) return;
+  const linhas=txt.split("\n").map(l=>l.trim()).filter(l=>l.length>3);
+  linhas.forEach(l=>{
+    erros.push({id:Date.now()+Math.floor(Math.random()*1000),materia:"outro",fonte:"importado do diário antigo",frente:l,verso:"(abra e complete a correção deste erro)",caixa:1,proxima:hojeISO(),criado:hojeISO(),revisoes:0});
+  });
+  localStorage.removeItem(LS_DIARIO);
+  salvarErros(); renderErros();
+  alert(linhas.length+" anotações importadas como cards. Abra cada uma e complete o verso com a correção.");
+}
+
+function renderComoFunciona(){
+  document.getElementById("erros-como").innerHTML=`
+    <div class="panel">
+      <h3>🔬 Por que este caderno funciona (base científica)</h3>
+      <p style="font-size:.88rem;margin:8px 0"><b>1. Recordação ativa (active recall).</b> Tentar lembrar a resposta de cabeça — antes de olhar — fixa muito mais que reler. Estudos mostram ganho de 50–80% na retenção vs. releitura passiva.</p>
+      <p style="font-size:.88rem;margin:8px 0"><b>2. Repetição espaçada.</b> Revisar em intervalos crescentes, "logo antes de esquecer", bate a curva do esquecimento. Produz 75–100% mais retenção de longo prazo que decorar tudo de uma vez.</p>
+      <p style="font-size:.88rem;margin:8px 0"><b>3. Sistema de Leitner.</b> Cada card vive numa caixa (1 a 5). Acertou → sobe de caixa e some por mais tempo. Errou → volta pra caixa 1 e volta logo. Assim seu tempo se concentra no que você ainda erra.</p>
+      <div class="panel" style="background:var(--bg);margin-top:12px">
+        <b style="font-size:.85rem">Os intervalos deste caderno (reta final):</b>
+        <div style="font-size:.84rem;margin-top:6px">
+          🔴 Caixa 1 → revisa em <b>1 dia</b><br>
+          🟠 Caixa 2 → revisa em <b>2 dias</b><br>
+          🟡 Caixa 3 → revisa em <b>4 dias</b><br>
+          🔵 Caixa 4 → revisa em <b>7 dias</b><br>
+          🟢 Caixa 5 → revisa em <b>14 dias</b> (quase dominado)
+        </div>
+      </div>
+      <div class="panel" style="background:var(--amarelo-bg);margin-top:12px">
+        <b style="font-size:.85rem">📓 Físico + digital: como usar os dois sem retrabalho</b>
+        <p style="font-size:.84rem;margin-top:6px">Não anote a mesma coisa duas vezes. Deixe cada um com a função em que é melhor:</p>
+        <p style="font-size:.84rem;margin-top:6px">• <b>Caderninho físico</b> = onde você <b>resolve e pensa</b> na hora do erro (escrever à mão ajuda a codificar).<br>• <b>Este caderno digital</b> = o <b>motor de revisão</b> que o papel não faz: ele te lembra o que revisar hoje e te testa. Passe para cá só os erros que você precisa <b>decorar até a prova</b>.</p>
+      </div>
+      <p style="font-size:.78rem;color:var(--txt2);margin-top:12px">Fontes: Roediger &amp; Karpicke (2006, retrieval practice); revisão sistemática sobre repetição espaçada e prática de recordação (PMC/NIH); sistema de Leitner (Sebastian Leitner, 1972). Conteúdo resumido para fins de estudo.</p>
+    </div>`;
+}
 
 /* ---------- init ---------- */
 renderHome();
@@ -356,3 +527,4 @@ renderProvas();
 renderFiltrosBanco();
 renderBanco();
 renderAnalise();
+renderErros();
