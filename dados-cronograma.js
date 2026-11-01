@@ -7,9 +7,19 @@
      • PETROBRAS = refeitas nos DIAS DE SEMANA (treino de estilo Cesgranrio)
      • DOMINGOS = correção do simulado + reforço de pontos fracos
    Garante os 3 objetivos:
-     1) ver 100% dos 99 tópicos do edital (distribuídos dia a dia)
+     1) ver 100% dos 99 tópicos do edital (distribuídos dia a dia) — INDISPENSÁVEL
      2) refazer as 9 provas (4 TP sábados + 5 PB dias úteis)
      3) passar por todas as matérias, inclusive Port/Inglês do zero
+   -----------------------------------------------------------------------------
+   NOVO: +1h30 de manhã (usuária acorda mais cedo). Essa hora e meia extra é
+   DIRECIONADA às lacunas do diagnóstico real (4 provas Petrobras):
+     • PRIORIDADE ALTA (mais tempo): Operações Unitárias (erra 48%, peso 5) e
+       Controle (erra 65%). São o maior retorno de nota.
+     • PRIORIDADE MÉDIA: Calor e Cinética (erra ~25%).
+     • MANUTENÇÃO (pouco tempo): Termodinâmica e Fluidos — já são pontos FORTES
+       (erra 13-16%) e de alto peso; só revisão para não enferrujar.
+     • Português (gramática) todo dia — classificatório, ponto barato.
+   Princípio: cobrir TUDO (objetivo 1), mas investir desproporcionalmente no fraco.
    -----------------------------------------------------------------------------
    PROVA_DATA é lida pelo app para a contagem regressiva.
 ============================================================================= */
@@ -118,3 +128,18 @@ const TATICAS_PROVA = [
   "Marque o cartão com calma nos 30 min finais; não há substituição por erro seu (item 8.19).",
   "Pegadinha Cesgranrio de unidade: confira o que a questão pede (kJ? W? kmol/h?)."
 ];
+
+/* -----------------------------------------------------------------------------
+   DOSE DE MANHÃ (+1h30/dia) — direcionada às LACUNAS do diagnóstico real.
+   Rotina fixa que se repete todo dia útil, puxando o assunto do dia no banco.
+----------------------------------------------------------------------------- */
+const EXTRA_MANHA = {
+  titulo: "☀️ +1h30 de manhã — dose diária direcionada às lacunas",
+  intro: "Você acorda mais cedo e separou 1h30 extra. Essa hora e meia NÃO é para estudar tudo igual — é para atacar onde você está fraca. Repita esta rotina todo dia útil:",
+  blocos: [
+    { h:"~50 min", t:"Questões avulsas do PONTO FRACO do dia", d:"15-20 questões no banco, filtrando pela matéria/subtópico em vermelho no Meu Desempenho. Ordem de prioridade: 1º Operações Unitárias, 2º Controle, 3º Calor/Cinética. Use o botão 'treinar →'." },
+    { h:"~25 min", t:"Corrigir e jogar no Caderno de Erros", d:"Todo erro e todo 'quase' vira card Leitner. É aqui que fixa — não no volume de questões." },
+    { h:"~15 min", t:"Revisar hoje (repetição espaçada) + 3 questões de gramática", d:"Limpe os cards que venceram no Caderno de Erros e faça 3 questões de Português (vírgula/crase/concordância) — ponto barato e classificatório." }
+  ],
+  obs: "Termo e Fluidos (seus fortes) NÃO entram na dose de manhã a não ser que apareçam como erro — eles ficam na revisão leve das 2h da tarde. Foco da manhã = o que dói."
+};

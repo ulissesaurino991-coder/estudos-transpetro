@@ -214,6 +214,15 @@ function renderEstrategia(){
 ============================================================================= */
 function renderCrono(){
   let html="";
+  if(typeof EXTRA_MANHA!=="undefined"){
+    const e=EXTRA_MANHA;
+    html+=`<div class="panel" style="border-left:4px solid var(--amarelo);margin-bottom:16px">
+      <h3>${e.titulo}</h3>
+      <p class="sub" style="margin-top:0">${e.intro}</p>
+      ${e.blocos.map(b=>`<div style="display:flex;gap:12px;padding:8px 0;border-top:1px solid var(--borda)"><div style="flex:0 0 72px;font-weight:700;color:var(--amarelo);font-size:.82rem">${b.h}</div><div><b style="font-size:.88rem">${b.t}</b><br><span class="sub">${b.d}</span></div></div>`).join("")}
+      <div class="como" style="margin-top:8px"><b>Regra de ouro:</b> ${e.obs}</div>
+    </div>`;
+  }
   CRONOGRAMA.forEach(sem=>{
     html+=`<div class="crono-sem"><div class="shead"><h4>${sem.semana}</h4><p>Foco: ${sem.foco}</p></div>`;
     sem.dias.forEach(d=>{
@@ -525,8 +534,14 @@ function renderTatica(){
       </div>
     </div>`).join("");
 
+  document.getElementById("tatica-energia").innerHTML=(typeof PLANO_ENERGIA!=="undefined"?PLANO_ENERGIA:[]).map(r=>`
+    <div class="insight"><b>${r.t}</b><span>${r.d}</span></div>`).join("");
+
   document.getElementById("tatica-atencao").innerHTML=REGRAS_ATENCAO.map(r=>`
     <div class="insight"><b>${r.t}</b><span>${r.d}</span></div>`).join("");
+
+  document.getElementById("tatica-teste").innerHTML=(typeof TESTE_SABADO!=="undefined"?TESTE_SABADO:[]).map(r=>`
+    <div class="insight" style="border-left-color:var(--verde)"><b>${r.semana}</b><span>${r.foco}</span></div>`).join("");
 
   document.getElementById("tatica-treino").innerHTML=`<ul style="margin:0 0 0 18px;font-size:.85rem;color:var(--txt2)">${TREINO_TEMPO.map(t=>`<li style="margin-bottom:5px">${t}</li>`).join("")}</ul>`;
 }

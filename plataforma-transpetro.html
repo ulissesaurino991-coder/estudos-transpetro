@@ -344,9 +344,11 @@
       <h2>⏱️ Tática de Prova — terminar em 4h, conferir em 30min</h2>
       <p class="sub">Seu plano para resolver as 70 questões em 4h00 e usar os 30min finais no cartão + conferência. Baseado no SEU desempenho real: cálculo custa tempo, conceitual custa ponto por desatenção.</p>
       <div class="cards" id="tatica-resumo"></div>
-      <div class="panel"><h3>🗺️ O método das 3 voltas (+ reserva)</h3><p class="sub" style="margin-top:0">Nunca resolva na ordem 1→70. Faça voltas: garanta o fácil primeiro, volte no difícil depois.</p><div id="tatica-voltas"></div></div>
+      <div class="panel"><h3>🗺️ O mapa da prova: voltas + pausas de energia</h3><p class="sub" style="margin-top:0">Nunca resolva na ordem 1→70. Garanta o fácil primeiro, descanse com as línguas no meio, volte no cálculo pesado depois. As pausas (banheiro/comida/energético) já estão no timing certo.</p><div id="tatica-voltas"></div></div>
+      <div class="panel"><h3>🔋 Plano de energia e foco (menos cansaço, mais atenção)</h3><div id="tatica-energia"></div></div>
       <div class="panel"><h3>🎯 Regras de atenção (atacam seus erros em conceitual)</h3><div id="tatica-atencao"></div></div>
-      <div class="panel"><h3>🏋️ Como treinar o tempo nos sábados</h3><div id="tatica-treino"></div></div>
+      <div class="panel"><h3>🏋️ Como testar essas táticas nos 4 sábados (sem estrear no dia da prova)</h3><div id="tatica-teste"></div></div>
+      <div class="panel"><h3>⏲️ Treino de ritmo</h3><div id="tatica-treino"></div></div>
     </section>
 
     <!-- ANÁLISE -->
@@ -1084,9 +1086,19 @@ const PROVAS = [
      • PETROBRAS = refeitas nos DIAS DE SEMANA (treino de estilo Cesgranrio)
      • DOMINGOS = correção do simulado + reforço de pontos fracos
    Garante os 3 objetivos:
-     1) ver 100% dos 99 tópicos do edital (distribuídos dia a dia)
+     1) ver 100% dos 99 tópicos do edital (distribuídos dia a dia) — INDISPENSÁVEL
      2) refazer as 9 provas (4 TP sábados + 5 PB dias úteis)
      3) passar por todas as matérias, inclusive Port/Inglês do zero
+   -----------------------------------------------------------------------------
+   NOVO: +1h30 de manhã (usuária acorda mais cedo). Essa hora e meia extra é
+   DIRECIONADA às lacunas do diagnóstico real (4 provas Petrobras):
+     • PRIORIDADE ALTA (mais tempo): Operações Unitárias (erra 48%, peso 5) e
+       Controle (erra 65%). São o maior retorno de nota.
+     • PRIORIDADE MÉDIA: Calor e Cinética (erra ~25%).
+     • MANUTENÇÃO (pouco tempo): Termodinâmica e Fluidos — já são pontos FORTES
+       (erra 13-16%) e de alto peso; só revisão para não enferrujar.
+     • Português (gramática) todo dia — classificatório, ponto barato.
+   Princípio: cobrir TUDO (objetivo 1), mas investir desproporcionalmente no fraco.
    -----------------------------------------------------------------------------
    PROVA_DATA é lida pelo app para a contagem regressiva.
 ============================================================================= */
@@ -1195,6 +1207,21 @@ const TATICAS_PROVA = [
   "Marque o cartão com calma nos 30 min finais; não há substituição por erro seu (item 8.19).",
   "Pegadinha Cesgranrio de unidade: confira o que a questão pede (kJ? W? kmol/h?)."
 ];
+
+/* -----------------------------------------------------------------------------
+   DOSE DE MANHÃ (+1h30/dia) — direcionada às LACUNAS do diagnóstico real.
+   Rotina fixa que se repete todo dia útil, puxando o assunto do dia no banco.
+----------------------------------------------------------------------------- */
+const EXTRA_MANHA = {
+  titulo: "☀️ +1h30 de manhã — dose diária direcionada às lacunas",
+  intro: "Você acorda mais cedo e separou 1h30 extra. Essa hora e meia NÃO é para estudar tudo igual — é para atacar onde você está fraca. Repita esta rotina todo dia útil:",
+  blocos: [
+    { h:"~50 min", t:"Questões avulsas do PONTO FRACO do dia", d:"15-20 questões no banco, filtrando pela matéria/subtópico em vermelho no Meu Desempenho. Ordem de prioridade: 1º Operações Unitárias, 2º Controle, 3º Calor/Cinética. Use o botão 'treinar →'." },
+    { h:"~25 min", t:"Corrigir e jogar no Caderno de Erros", d:"Todo erro e todo 'quase' vira card Leitner. É aqui que fixa — não no volume de questões." },
+    { h:"~15 min", t:"Revisar hoje (repetição espaçada) + 3 questões de gramática", d:"Limpe os cards que venceram no Caderno de Erros e faça 3 questões de Português (vírgula/crase/concordância) — ponto barato e classificatório." }
+  ],
+  obs: "Termo e Fluidos (seus fortes) NÃO entram na dose de manhã a não ser que apareçam como erro — eles ficam na revisão leve das 2h da tarde. Foco da manhã = o que dói."
+};
 
 </script>
 <script>
@@ -2757,52 +2784,84 @@ const META_TEMPO = {
   minPorQuestaoMeta: 3.4 // 240/70
 };
 
-// Plano de blocos de tempo (as "voltas" na prova)
+// Plano de blocos de tempo (as "voltas" na prova) — com pausas de energia embutidas
 const PLANO_VOLTAS = [
   {
-    bloco: "1ª VOLTA — Varredura (0:00 → 1:40, ~100 min)",
+    bloco: "1ª VOLTA — Varredura das específicas (0:00 → 1:30, ~90 min)",
     cor: "#065f46",
-    meta: "Passar por TODAS as 70 questões uma vez. Resolver só o que sai rápido.",
+    meta: "Passar pelas 50 específicas (Q21-70) resolvendo só o que sai rápido. Línguas ficam para a pausa.",
     regras: [
-      "Faça TODAS as conceituais (teoria) que você sabe — são rápidas (~1,5 min) e é onde você mais perde ponto por desatenção. LEIA a pergunta inteira: a Cesgranrio adora 'EXCETO', 'INCORRETO', 'APENAS'.",
+      "⚡ ENERGÉTICO: tome nos primeiros ~15 min (ou 30 min antes de começar), para o pico de cafeína bater lá no meio-fim da prova, quando a atenção cai. NUNCA estreie no dia — teste no sábado.",
+      "Faça TODAS as conceituais que você sabe — rápidas (~1,5 min) e é onde você mais perde ponto por desatenção. LEIA a pergunta inteira: Cesgranrio adora 'EXCETO', 'INCORRETO', 'APENAS'.",
       "Faça os cálculos CURTOS (conversão de unidade, regra de três, fórmula direta).",
       "Cálculo que não destravar em ~1 min: PULE e circule o número na prova. Não insista agora.",
-      "Marque as respostas na PRÓPRIA prova (não no cartão ainda).",
-      "Ao fim da 1ª volta você já garantiu ~45-50 questões e sabe exatamente quais faltam."
+      "Marque as respostas na PRÓPRIA prova (não no cartão ainda)."
     ]
   },
   {
-    bloco: "2ª VOLTA — Cálculos pesados (1:40 → 3:30, ~110 min)",
-    cor: "#b45309",
-    meta: "Voltar nas questões de cálculo que você pulou, agora com calma e sem pressa de 'e as outras?'.",
+    bloco: "☕ PAUSA 1 + LÍNGUAS (1:30 → 2:05, ~35 min)",
+    cor: "#0891b2",
+    meta: "Descanso ativo: troca o cérebro de 'cálculo' para 'leitura'. Recupera energia sem perder tempo.",
     regras: [
-      "Agora o relógio não assusta: os pontos fáceis já estão garantidos.",
+      "🚻 Vá ao banheiro agora (ida planejada nº1) — você já garantiu as específicas fáceis, é o momento de menor custo.",
+      "🍫 Coma 1 porção pequena (metade da barrinha OU meio sanduíche). Proteína + carbo complexo = energia estável. EVITE açúcar puro (dá pico e queda/sono).",
+      "🌐 Faça AGORA Português (Q1-10) e Inglês (Q11-20). É leitura, não cálculo — 'descansa' do raciocínio pesado E garante os pontos classificatórios enquanto você ainda está fresca.",
+      "Línguas bem feitas aqui = ~15-18 pontos garantidos + mente renovada para a parte mais dura."
+    ]
+  },
+  {
+    bloco: "2ª VOLTA — Cálculos pesados (2:05 → 3:40, ~95 min)",
+    cor: "#b45309",
+    meta: "Voltar nos cálculos que você pulou, agora com calma e sem pressa de 'e as outras?'.",
+    regras: [
+      "Agora o relógio não assusta: fáceis e línguas já estão garantidos.",
       "Dê no máximo ~4-5 min por cálculo pesado. Travou de novo? Chute consciente (elimine 2 alternativas absurdas) e siga.",
       "Confira a UNIDADE que a questão pede (kJ? W? kmol/h? %). É a pegadinha nº1 da Cesgranrio e custou pontos seus.",
-      "Op. Unitárias e Controle (suas lacunas): se for uma delas e você não lembrar o método, chute e NÃO gaste tempo — o ponto esperado ali é baixo."
+      "🥤 Beba água em goles; se bater cansaço forte, faça a ida nº2 ao banheiro AQUI (como micro-pausa), nunca no meio de um cálculo.",
+      "Op. Unitárias e Controle (suas lacunas): se não lembrar o método, chute e NÃO insista — o ponto esperado ali é baixo."
     ]
   },
   {
-    bloco: "3ª VOLTA — Fechamento (3:30 → 4:00, ~30 min)",
+    bloco: "3ª VOLTA — Fechamento (3:40 → 4:00, ~20 min)",
     cor: "#1d4ed8",
-    meta: "Resolver/decidir as últimas pendentes. NENHUMA questão em branco.",
+    meta: "Decidir as últimas pendentes. NENHUMA questão em branco.",
     regras: [
-      "Toda questão sem resposta = 0 garantido. Chute em TODAS as que sobraram (sem gabarito negativo, chutar é obrigatório).",
+      "🍫 Última mordida da barrinha/sanduíche se precisar de gás para o sprint final.",
+      "Toda questão sem resposta = 0 garantido. Chute em TODAS as que sobraram (não há gabarito negativo, chutar é obrigatório).",
       "Revise rapidinho as que você marcou com dúvida na 1ª volta.",
-      "Às 4:00 em ponto, PARE de resolver. Começa a reserva."
+      "Às 4:00 em ponto, PARE de resolver. Começa a reserva do cartão."
     ]
   },
   {
-    bloco: "RESERVA — Cartão + conferência (4:00 → 4:30, 30 min)",
+    bloco: "✅ RESERVA — Cartão + conferência (4:00 → 4:30, 30 min)",
     cor: "#7c3aed",
-    meta: "Transcrever para o cartão-resposta com atenção total e conferir questão por questão.",
+    meta: "Transcrever para o cartão com atenção total e revisar as de dúvida.",
     regras: [
-      "Transcreva da prova para o cartão em blocos de 10, conferindo o NÚMERO da questão a cada bloco (erro de 'pular linha' no cartão reprova gente que sabia a matéria).",
+      "Transcreva da prova para o cartão em blocos de 10, conferindo o NÚMERO da questão a cada bloco (erro de 'pular linha' reprova quem sabia a matéria).",
       "Preencha a bolha com capricho — cartão lido por máquina não perdoa marcação torta/fraca.",
-      "Ao terminar, confira 1×: alguma bolha dupla? alguma em branco? o número bate com a prova?",
-      "NÃO mude resposta nesta fase a não ser que tenha CERTEZA de erro — a primeira intuição costuma acertar mais."
+      "Revise primeiro as questões que você marcou com DÚVIDA (estrela/círculo na prova).",
+      "Confira 1× no fim: alguma bolha dupla? alguma em branco? o número bate com a prova?",
+      "NÃO mude resposta a não ser que tenha CERTEZA de erro — a primeira intuição acerta mais."
     ]
   }
+];
+
+// Plano de energia e foco ao longo das 4h30 (combate ao cansaço)
+const PLANO_ENERGIA = [
+  { t: "⚡ Energético — timing", d: "Tome nos primeiros 15 min da prova (ou 30 min antes). A cafeína leva ~30-45 min para agir e dura 3-4h: assim o pico cai no meio-fim, quando a concentração despenca. Tomar 'quando estiver fraca' (3h de prova) faz o efeito vir DEPOIS da prova — inútil. ⚠️ TESTE no sábado: em estômago vazio pode dar taquicardia/tremor." },
+  { t: "🍫 Comida — o quê e quando", d: "Barrinha de proteína e/ou sanduíche: proteína + carboidrato complexo liberam energia devagar = foco estável. EVITE açúcar rápido (bala/chocolate ao leite): dá pico e depois queda que dá sono. Coma em porções pequenas nas pausas entre voltas, nunca tudo de uma vez (digestão pesada = sangue sai do cérebro = sono)." },
+  { t: "💧 Água — hidrate antes", d: "Beba bem ANTES de entrar; durante, goles pequenos. Muita água de uma vez = mais idas ao banheiro = mais tempo perdido e mais quebra de concentração." },
+  { t: "🚻 Banheiro — idas planejadas", d: "Cada ida custa ~3-5 min (com fiscal) + tempo de reconcentrar. Planeje 1 ida na transição 1ª→2ª volta (~1h30). Uma 2ª ida, se precisar, use como micro-pausa quando bater cansaço na 2ª volta — nunca no meio de uma questão." },
+  { t: "🌐 Línguas como descanso", d: "Português/Inglês usam raciocínio de LEITURA, diferente do cálculo. Fazê-las no meio (após a 1ª volta) 'descansa' o cérebro de cálculo E garante pontos classificatórios enquanto você ainda tem energia. Não deixe para o fim exausta." },
+  { t: "🧘 Micro-resets de atenção", d: "A cada troca de volta, respire fundo 3× e estique os ombros por 20s. Reseta a atenção e combate o erro por desatenção (seus 34% em conceitual). Barato e invisível." }
+];
+
+// Protocolo para TESTAR as táticas nos simulados de sábado (sem estrear no dia da prova)
+const TESTE_SABADO = [
+  { semana: "Sábado 1", foco: "Testar só o MÉTODO DAS VOLTAS. Cronômetro visível, meta 4h. NADA de energético ainda — isole a variável. Anote: quantas resolvi até 1h30? Sobrou tempo pro cartão?" },
+  { semana: "Sábado 2", foco: "Repetir voltas + testar LÍNGUAS no meio (após 1ª volta). Sentiu que descansou? Rendeu mais nos cálculos depois? Anote a sensação de energia às 3h." },
+  { semana: "Sábado 3", foco: "Agora testar o ENERGÉTICO (nos primeiros 15 min) + comida nas pausas. Com estômago igual ao do dia da prova. Deu taquicardia? Caiu bem? Ajuste a dose/marca." },
+  { semana: "Sábado 4 (espelho)", foco: "Ensaio GERAL idêntico ao dia 06/12: mesma hora, energético, comida, idas ao banheiro, método das voltas, 30min de cartão. Nada de novo no dia da prova — tudo já testado." }
 ];
 
 // Regras de ouro de ATENÇÃO (atacar os 34% de erro em conceitual = desatenção/pegadinha)
@@ -3041,6 +3100,15 @@ function renderEstrategia(){
 ============================================================================= */
 function renderCrono(){
   let html="";
+  if(typeof EXTRA_MANHA!=="undefined"){
+    const e=EXTRA_MANHA;
+    html+=`<div class="panel" style="border-left:4px solid var(--amarelo);margin-bottom:16px">
+      <h3>${e.titulo}</h3>
+      <p class="sub" style="margin-top:0">${e.intro}</p>
+      ${e.blocos.map(b=>`<div style="display:flex;gap:12px;padding:8px 0;border-top:1px solid var(--borda)"><div style="flex:0 0 72px;font-weight:700;color:var(--amarelo);font-size:.82rem">${b.h}</div><div><b style="font-size:.88rem">${b.t}</b><br><span class="sub">${b.d}</span></div></div>`).join("")}
+      <div class="como" style="margin-top:8px"><b>Regra de ouro:</b> ${e.obs}</div>
+    </div>`;
+  }
   CRONOGRAMA.forEach(sem=>{
     html+=`<div class="crono-sem"><div class="shead"><h4>${sem.semana}</h4><p>Foco: ${sem.foco}</p></div>`;
     sem.dias.forEach(d=>{
@@ -3352,8 +3420,14 @@ function renderTatica(){
       </div>
     </div>`).join("");
 
+  document.getElementById("tatica-energia").innerHTML=(typeof PLANO_ENERGIA!=="undefined"?PLANO_ENERGIA:[]).map(r=>`
+    <div class="insight"><b>${r.t}</b><span>${r.d}</span></div>`).join("");
+
   document.getElementById("tatica-atencao").innerHTML=REGRAS_ATENCAO.map(r=>`
     <div class="insight"><b>${r.t}</b><span>${r.d}</span></div>`).join("");
+
+  document.getElementById("tatica-teste").innerHTML=(typeof TESTE_SABADO!=="undefined"?TESTE_SABADO:[]).map(r=>`
+    <div class="insight" style="border-left-color:var(--verde)"><b>${r.semana}</b><span>${r.foco}</span></div>`).join("");
 
   document.getElementById("tatica-treino").innerHTML=`<ul style="margin:0 0 0 18px;font-size:.85rem;color:var(--txt2)">${TREINO_TEMPO.map(t=>`<li style="margin-bottom:5px">${t}</li>`).join("")}</ul>`;
 }
