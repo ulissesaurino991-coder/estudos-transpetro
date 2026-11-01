@@ -38,7 +38,19 @@ const SIMULADOS_FEITOS = [
     erros: [4,5,7,24,32,34,36,40,41,42,44,47,48,50,52,55,57,58,59,65,66,67],
     naoFiz: [],
     obs: "69%. Operações Unitárias e Controle de novo fracos; alguns erros de Calor e Termo."
+  },
+  {
+    prova: "pb2011", rotulo: "Petrobras 2011 (feita ontem)", data: "2026-10-29",
+    tempo: 270, // 4h30
+    // nota: acertos aproximados — 8 'chutes' foram questões SEM TEMPO (contadas como não feitas).
+    // Alguns chutes acertaram na sorte, mas tratamos como não resolvidas para o diagnóstico.
+    nota: { acertos: 47, total: 70 },
+    // erros de CONTEÚDO (X sem 'chute') — Q64 é anulada, não entra:
+    erros: [6,7,9,10,19,22,24,26,42,43,45,60,61,67,70],
+    // 'chute' = NÃO deu tempo de fazer (lacuna de tempo, não de conteúdo):
+    naoFiz: [28,29,30,31,37,38,39,51],
+    anuladasMarcadas: [64],
+    obs: "⚠️ 8 questões (28-31, 37-39, 51) ficaram sem tempo — TODAS de cálculo (Balanços, Op. Unitárias, Termo). Problema de ritmo, não de conteúdo. Erros reais: Português 4/10 (ponto fraco!), Inglês 1/10 (forte)."
   }
-  // Simulado 5 (Petrobras 2014, 66%, 46/70) e Simulado da Petrobras 2011 (reta de tempo)
-  // entram quando você mandar as relações de acerto/erro + o gabarito oficial.
+  // Simulado 5 (Petrobras 2014, 66%, 46/70) entra quando você mandar a relação + gabarito oficial.
 ];

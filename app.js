@@ -382,12 +382,14 @@ function renderDesempenho(){
   const totalQ=sims.reduce((a,s)=>a+s.nota.total,0);
   const totalAc=sims.reduce((a,s)=>a+s.nota.acertos,0);
   const totalNaoFiz=sims.reduce((a,s)=>a+(s.naoFiz?s.naoFiz.length:0),0);
+  // erros de CONTEÚDO = questões erradas listadas (não inclui as sem tempo)
+  const totalErrConteudo=sims.reduce((a,s)=>a+(s.erros?s.erros.length:0),0);
   const mediaPct=totalQ?Math.round(totalAc/totalQ*100):0;
   document.getElementById("desemp-resumo").innerHTML=`
     <div class="mcard"><div class="cap">📋 Simulados feitos</div><div class="big azul">${sims.length}</div><div class="note">registrados aqui</div></div>
     <div class="mcard"><div class="cap">📈 Média de acerto</div><div class="big verde">${mediaPct}%</div><div class="note">${totalAc}/${totalQ} questões</div></div>
-    <div class="mcard"><div class="cap">📉 Erros no total</div><div class="big amarelo">${totalQ-totalAc}</div><div class="note">a atacar na reta final</div></div>
-    <div class="mcard"><div class="cap">⏱️ Ficaram sem tempo</div><div class="big ${totalNaoFiz?'vermelho':'verde'}">${totalNaoFiz}</div><div class="note">lacuna de ritmo</div></div>`;
+    <div class="mcard"><div class="cap">📉 Erros de conteúdo</div><div class="big amarelo">${totalErrConteudo}</div><div class="note">questões que errou sabendo o assunto</div></div>
+    <div class="mcard"><div class="cap">⏱️ Ficaram sem tempo</div><div class="big ${totalNaoFiz?'vermelho':'verde'}">${totalNaoFiz}</div><div class="note">lacuna de ritmo (não de conteúdo)</div></div>`;
 
   // ---- Gestão de tempo ----
   const tempoBox=document.getElementById("desemp-tempo");
@@ -415,6 +417,39 @@ function renderDesempenho(){
       <li><b>Cronômetro visível:</b> treine os simulados de sábado SEMPRE com timer de 4h30 e meta de terminar em 4h.</li>
     </ol></div>`;
   tempoBox.innerHTML=thtml;
+
+  // ---- Português e Inglês (Gerais) — agora classificatórios ----
+  // Q1-10 = Português, Q11-20 = Inglês (padrão Cesgranrio nível superior).
+  const gBox=document.getElementById("desemp-gerais");
+  let pTot=0,pErr=0,pNF=0, iTot=0,iErr=0,iNF=0;
+  sims.forEach(s=>{
+    pTot+=10; iTot+=10;
+    (s.erros||[]).forEach(n=>{ if(n>=1&&n<=10)pErr++; else if(n>=11&&n<=20)iErr++; });
+    (s.naoFiz||[]).forEach(n=>{ if(n>=1&&n<=10)pNF++; else if(n>=11&&n<=20)iNF++; });
+  });
+  const linha=(nome,tot,err,nf,alvo)=>{
+    const ac=tot-err-nf, pct=tot?Math.round(ac/tot*100):0;
+    const cor=pct>=70?"var(--verde)":pct>=50?"#b45309":"var(--vermelho)";
+    return `<div class="row"><div class="nm">${nome}</div><div class="track"><div class="fill" style="width:${Math.max(pct,8)}%;background:${cor}">${ac}/${tot} (${pct}%)</div></div></div>`;
+  };
+  // por prova (pra não esconder uma prova fraca na média)
+  let gPerProva=`<table class="evo" style="margin-top:10px"><tr><th style="text-align:left">Prova</th><th>Português</th><th>Inglês</th></tr>`;
+  sims.forEach(s=>{
+    const pe=(s.erros||[]).filter(n=>n<=10).length, pn=(s.naoFiz||[]).filter(n=>n<=10).length, pa=10-pe-pn;
+    const ie=(s.erros||[]).filter(n=>n>=11&&n<=20).length, inf=(s.naoFiz||[]).filter(n=>n>=11&&n<=20).length, ia=10-ie-inf;
+    const cell=(a)=>{const c=a>=7?"#bbf7d0":a>=5?"#fef9c3":"#fecaca";return `style="background:${c};text-align:center"`;};
+    gPerProva+=`<tr style="border-top:1px solid var(--borda)"><td class="nm">${s.rotulo.split("—").pop().trim()}</td><td ${cell(pa)}>${pa}/10</td><td ${cell(ia)}>${ia}/10</td></tr>`;
+  });
+  gPerProva+=`</table>`;
+  gBox.innerHTML=`<div class="bars">${linha("Português (Q1-10) — média",pTot,pErr,pNF)}${linha("Inglês (Q11-20) — média",iTot,iErr,iNF)}</div>`+
+    gPerProva+
+    `<div class="como" style="margin-top:8px"><b>Leitura:</b> ${
+      pErr/Math.max(pTot,1)>0.25
+      ? `⚠️ Português oscila e tem provas fracas (ex.: 6/10 na PB2011). Como agora é CLASSIFICATÓRIO + eliminatório, cada acerto conta no ranking e um tropeço te elimina. É o melhor custo-benefício: interpretação + vírgula + crase são treináveis rápido.`
+      : `Português está sob controle, mas não relaxe — virou classificatório.`
+    } ${
+      iErr/Math.max(iTot,1)<=0.2 ? `Inglês está forte — mantenha com 1 texto por semana.` : `Inglês merece atenção (${iErr} erros em ${iTot}).`
+    }</div>`;
 
   // ---- Agregado de erros por matéria e subtópico (só específicas Q21-70) ----
   const matErr={}, matTot={}, subErr={};
