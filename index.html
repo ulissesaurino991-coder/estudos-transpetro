@@ -241,6 +241,7 @@
     <button data-s="provas"><span class="ico">🔁</span> Refazer Provas</button>
     <button data-s="banco"><span class="ico">🎯</span> Questões</button>
     <button data-s="desempenho"><span class="ico">🩺</span> Meu Desempenho</button>
+    <button data-s="tatica"><span class="ico">⏱️</span> Tática de Prova</button>
     <button data-s="analise"><span class="ico">📈</span> Análise</button>
     <button data-s="erros"><span class="ico">🧠</span> Caderno de Erros</button>
   </nav>
@@ -338,6 +339,16 @@
       <div class="panel"><h3>📋 Simulados registrados</h3><div id="desemp-lista"></div></div>
     </section>
 
+    <!-- TÁTICA DE PROVA -->
+    <section id="tatica">
+      <h2>⏱️ Tática de Prova — terminar em 4h, conferir em 30min</h2>
+      <p class="sub">Seu plano para resolver as 70 questões em 4h00 e usar os 30min finais no cartão + conferência. Baseado no SEU desempenho real: cálculo custa tempo, conceitual custa ponto por desatenção.</p>
+      <div class="cards" id="tatica-resumo"></div>
+      <div class="panel"><h3>🗺️ O método das 3 voltas (+ reserva)</h3><p class="sub" style="margin-top:0">Nunca resolva na ordem 1→70. Faça voltas: garanta o fácil primeiro, volte no difícil depois.</p><div id="tatica-voltas"></div></div>
+      <div class="panel"><h3>🎯 Regras de atenção (atacam seus erros em conceitual)</h3><div id="tatica-atencao"></div></div>
+      <div class="panel"><h3>🏋️ Como treinar o tempo nos sábados</h3><div id="tatica-treino"></div></div>
+    </section>
+
     <!-- ANÁLISE -->
     <section id="analise">
       <h2>Análise das Provas (Cesgranrio)</h2>
@@ -400,6 +411,7 @@
 <script src="dados-cronograma.js"></script>
 <script src="dados-questoes.js"></script>
 <script src="dados-simulados.js"></script>
+<script src="dados-tatica-prova.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

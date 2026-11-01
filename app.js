@@ -13,7 +13,7 @@ let progresso=load(LS_KEY);
 let respostas=load(LS_RESP);
 
 const LS_ERROS="transpetro_eq_erros_v1"; // caderno de erros (Leitner + repetição espaçada)
-const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",analise:"Análise das Provas",erros:"Caderno de Erros"};
+const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
 
 /* ---------- navegação ---------- */
 document.querySelectorAll("#nav button").forEach(b=>{
@@ -27,6 +27,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     if(b.dataset.s==="provas") renderProvas();
     if(b.dataset.s==="estrategia") renderEstrategia();
     if(b.dataset.s==="desempenho") renderDesempenho();
+    if(b.dataset.s==="tatica") renderTatica();
     if(b.dataset.s==="erros") renderErros();
     window.scrollTo({top:0,behavior:"smooth"});
   };
@@ -501,6 +502,33 @@ function renderDesempenho(){
       <span class="tag ${confiavel?'conc':'anulada-tag'}" title="${confiavel?'Gabarito oficial confirmado — diagnóstico 100% confiável':'Gabarito ainda não confirmado — subtópico confiável só para a matéria'}">${confiavel?'✓ gabarito oficial':'⚠ gabarito provisório'}</span>
     </div>`;
   }).join("");
+}
+
+/* =============================================================================
+   TÁTICA DE PROVA — método das voltas + atenção + treino de tempo
+============================================================================= */
+function renderTatica(){
+  if(typeof META_TEMPO==="undefined") return;
+  const m=META_TEMPO;
+  document.getElementById("tatica-resumo").innerHTML=`
+    <div class="mcard"><div class="cap">⏱️ Meta de ritmo</div><div class="big azul">${m.minPorQuestaoMeta} min</div><div class="note">por questão (terminar em 4h)</div></div>
+    <div class="mcard"><div class="cap">📝 Resolver tudo até</div><div class="big verde">4h00</div><div class="note">das 4h30 totais</div></div>
+    <div class="mcard"><div class="cap">✅ Reserva p/ cartão</div><div class="big amarelo">30 min</div><div class="note">transcrever + conferir</div></div>
+    <div class="mcard"><div class="cap">🎯 Você já fez isso</div><div class="big verde">PB2012</div><div class="note">terminou em 4h — é possível!</div></div>`;
+
+  document.getElementById("tatica-voltas").innerHTML=PLANO_VOLTAS.map(v=>`
+    <div class="fase" style="margin-bottom:12px">
+      <div class="fh" style="background:${v.cor}"><b>${v.bloco}</b></div>
+      <div style="padding:12px 15px">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:6px;color:var(--txt)">${v.meta}</div>
+        <ul style="margin:0 0 0 18px;font-size:.84rem;color:var(--txt2)">${v.regras.map(r=>`<li style="margin-bottom:4px">${r}</li>`).join("")}</ul>
+      </div>
+    </div>`).join("");
+
+  document.getElementById("tatica-atencao").innerHTML=REGRAS_ATENCAO.map(r=>`
+    <div class="insight"><b>${r.t}</b><span>${r.d}</span></div>`).join("");
+
+  document.getElementById("tatica-treino").innerHTML=`<ul style="margin:0 0 0 18px;font-size:.85rem;color:var(--txt2)">${TREINO_TEMPO.map(t=>`<li style="margin-bottom:5px">${t}</li>`).join("")}</ul>`;
 }
 
 /* =============================================================================
