@@ -238,21 +238,19 @@ function renderCrono(){
 /* =============================================================================
    REFAZER PROVAS
 ============================================================================= */
-const LS_PROVAS_MIG="transpetro_eq_provas_mig_v2"; // marca de migração única
 function carregarProvas(){
   let d=load(LS_PROVAS);
-  PROVAS.forEach(p=>{ if(!d[p.id]) d[p.id]={status:p.statusInicial,acertos:"",total:50}; });
-  // Migração única: PB2011 passou de "próxima" para "resolvida" (usuária já fez em 29/10).
-  // Preenche também os acertos reais das provas já feitas, se ainda estiverem vazios.
-  if(!localStorage.getItem(LS_PROVAS_MIG)){
-    const notasReais={ pb2011:47, pb2012:48, pb2014:46, pb2018:52 };
-    if(d.pb2011 && d.pb2011.status==="proxima"){ d.pb2011.status="resolvido"; }
-    Object.keys(notasReais).forEach(id=>{
-      if(d[id] && (d[id].acertos===""||d[id].acertos==null)){ d[id].acertos=notasReais[id]; d[id].total=70; }
-    });
-    save(LS_PROVAS,d);
-    localStorage.setItem(LS_PROVAS_MIG,"1");
-  }
+  let mudou=false;
+  const notasReais={ pb2011:47, pb2012:48, pb2014:46, pb2018:52 };
+  PROVAS.forEach(p=>{
+    if(!d[p.id]){ d[p.id]={status:p.statusInicial,acertos:"",total:50}; mudou=true; }
+    // Sincroniza SEMPRE: se os dados oficiais marcam a prova como resolvida,
+    // força "resolvido" no estado salvo (corrige estados antigos em cache, à prova de refresh).
+    if(p.statusInicial==="resolvido" && d[p.id].status!=="resolvido"){ d[p.id].status="resolvido"; mudou=true; }
+    // Preenche a nota real das provas já feitas, se ainda estiver vazia.
+    if(notasReais[p.id]!=null && (d[p.id].acertos===""||d[p.id].acertos==null)){ d[p.id].acertos=notasReais[p.id]; d[p.id].total=70; mudou=true; }
+  });
+  if(mudou) save(LS_PROVAS,d);
   return d;
 }
 function salvarProvas(d){ save(LS_PROVAS,d); }
