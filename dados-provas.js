@@ -304,7 +304,7 @@ const QUESTOES = [
 ----------------------------------------------------------------------------- */
 const PROVAS = [
   { id:"pb2010", ano:2010, banca:"PB", nome:"Petrobras 2010 — Eng. Proc. Jr", obs:"PSP RH 2/2010. Única que você ainda NÃO fez.", statusInicial:"afazer" },
-  { id:"pb2011", ano:2011, banca:"PB", nome:"Petrobras 2011 — Eng. Proc. Jr", obs:"Você vai fazer amanhã.", statusInicial:"proxima" },
+  { id:"pb2011", ano:2011, banca:"PB", nome:"Petrobras 2011 — Eng. Proc. Jr", obs:"Feita em 29/10 (66% aprox.). Diagnóstico no Meu Desempenho.", statusInicial:"resolvido" },
   { id:"pb2012", ano:2012, banca:"PB", nome:"Petrobras 2012 — Eng. Proc. Jr", obs:"PSP RH 1/2012. Já resolvida.", statusInicial:"resolvido" },
   { id:"pb2014", ano:2014, banca:"PB", nome:"Petrobras 2014 — Eng. Proc. Jr", obs:"Edição 2014.2. Já resolvida.", statusInicial:"resolvido" },
   { id:"pb2018", ano:2018, banca:"PB", nome:"Petrobras 2018 — Eng. Proc. Jr", obs:"Edição 2018.1. Já resolvida.", statusInicial:"resolvido" },

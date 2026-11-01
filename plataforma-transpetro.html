@@ -1065,7 +1065,7 @@ const QUESTOES = [
 ----------------------------------------------------------------------------- */
 const PROVAS = [
   { id:"pb2010", ano:2010, banca:"PB", nome:"Petrobras 2010 — Eng. Proc. Jr", obs:"PSP RH 2/2010. Única que você ainda NÃO fez.", statusInicial:"afazer" },
-  { id:"pb2011", ano:2011, banca:"PB", nome:"Petrobras 2011 — Eng. Proc. Jr", obs:"Você vai fazer amanhã.", statusInicial:"proxima" },
+  { id:"pb2011", ano:2011, banca:"PB", nome:"Petrobras 2011 — Eng. Proc. Jr", obs:"Feita em 29/10 (66% aprox.). Diagnóstico no Meu Desempenho.", statusInicial:"resolvido" },
   { id:"pb2012", ano:2012, banca:"PB", nome:"Petrobras 2012 — Eng. Proc. Jr", obs:"PSP RH 1/2012. Já resolvida.", statusInicial:"resolvido" },
   { id:"pb2014", ano:2014, banca:"PB", nome:"Petrobras 2014 — Eng. Proc. Jr", obs:"Edição 2014.2. Já resolvida.", statusInicial:"resolvido" },
   { id:"pb2018", ano:2018, banca:"PB", nome:"Petrobras 2018 — Eng. Proc. Jr", obs:"Edição 2018.1. Já resolvida.", statusInicial:"resolvido" },
@@ -3124,9 +3124,21 @@ function renderCrono(){
 /* =============================================================================
    REFAZER PROVAS
 ============================================================================= */
+const LS_PROVAS_MIG="transpetro_eq_provas_mig_v2"; // marca de migração única
 function carregarProvas(){
   let d=load(LS_PROVAS);
   PROVAS.forEach(p=>{ if(!d[p.id]) d[p.id]={status:p.statusInicial,acertos:"",total:50}; });
+  // Migração única: PB2011 passou de "próxima" para "resolvida" (usuária já fez em 29/10).
+  // Preenche também os acertos reais das provas já feitas, se ainda estiverem vazios.
+  if(!localStorage.getItem(LS_PROVAS_MIG)){
+    const notasReais={ pb2011:47, pb2012:48, pb2014:46, pb2018:52 };
+    if(d.pb2011 && d.pb2011.status==="proxima"){ d.pb2011.status="resolvido"; }
+    Object.keys(notasReais).forEach(id=>{
+      if(d[id] && (d[id].acertos===""||d[id].acertos==null)){ d[id].acertos=notasReais[id]; d[id].total=70; }
+    });
+    save(LS_PROVAS,d);
+    localStorage.setItem(LS_PROVAS_MIG,"1");
+  }
   return d;
 }
 function salvarProvas(d){ save(LS_PROVAS,d); }
