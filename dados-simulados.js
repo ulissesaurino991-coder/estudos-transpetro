@@ -51,6 +51,14 @@ const SIMULADOS_FEITOS = [
     naoFiz: [28,29,30,31,37,38,39,51],
     anuladasMarcadas: [64],
     obs: "⚠️ 8 questões (28-31, 37-39, 51) ficaram sem tempo — TODAS de cálculo (Balanços, Op. Unitárias, Termo). Problema de ritmo, não de conteúdo. Erros reais: Português 4/10 (ponto fraco!), Inglês 1/10 (forte)."
+  },
+  {
+    prova: "pb2014", rotulo: "Simulado 5 — Petrobras 2014", data: "2026-09-19",
+    tempo: 270, // 4h30
+    nota: { acertos: 46, total: 70 },
+    // estrutura confirmada: Q1-10 Português, Q11-20 Inglês, Q21-70 específicas
+    erros: [7,9,10,14,15,17,27,35,36,39,41,42,43,44,45,50,58,61,64,65,66,67,69,70],
+    naoFiz: [],
+    obs: "66%. Fez a prova toda (sem problema de tempo). Gerais: Português 7/10, Inglês 7/10. Específicas fracas: Operações Unitárias (5/9), Controle (3/5), Cinética (2/3), Calor (3/7)."
   }
-  // Simulado 5 (Petrobras 2014, 66%, 46/70) entra quando você mandar a relação + gabarito oficial.
 ];
