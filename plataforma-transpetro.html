@@ -52,8 +52,17 @@
   .mcard{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px}
   .mcard .cap{font-size:.72rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;font-weight:600}
   .mcard .big{font-size:2rem;font-weight:800;margin-top:6px}
-  .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}
+  .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}.mcard .big.vermelho{color:var(--vermelho)}
   .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
+
+  /* MEU DESEMPENHO */
+  .alerta-box{background:var(--vermelho-bg);border-left:3px solid var(--vermelho);border-radius:8px;padding:11px 13px;font-size:.84rem;color:#7f1d1d;margin-bottom:10px}
+  .lacuna{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--borda);border-radius:9px;margin-bottom:7px;font-size:.85rem;background:#fff}
+  .lacuna.grave{border-color:var(--vermelho);background:var(--vermelho-bg)}
+  .lacuna .lac-info{flex:1}
+  .lacuna .lac-n{display:inline-block;min-width:26px;font-weight:800;color:var(--vermelho)}
+  .simrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--borda);font-size:.86rem}
+  .simrow:first-child{border-top:none}
 
   .panel{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px;margin-bottom:16px}
   .progress{height:10px;border-radius:6px;background:var(--bg);overflow:hidden;margin-top:8px}
@@ -231,6 +240,7 @@
     <button data-s="crono"><span class="ico">📅</span> Cronograma</button>
     <button data-s="provas"><span class="ico">🔁</span> Refazer Provas</button>
     <button data-s="banco"><span class="ico">🎯</span> Questões</button>
+    <button data-s="desempenho"><span class="ico">🩺</span> Meu Desempenho</button>
     <button data-s="analise"><span class="ico">📈</span> Análise</button>
     <button data-s="erros"><span class="ico">🧠</span> Caderno de Erros</button>
   </nav>
@@ -314,6 +324,17 @@
       <div class="filtros" id="filtros-subtopico"></div>
       <div class="filtros" id="filtros-tipo"></div>
       <div id="banco-cont"></div>
+    </section>
+
+    <!-- MEU DESEMPENHO -->
+    <section id="desempenho">
+      <h2>🩺 Meu Desempenho nos simulados</h2>
+      <p class="sub">Diagnóstico das provas que você já fez: onde estão suas lacunas reais (por matéria e por ponto do edital) e como está seu ritmo/tempo. Foque a reta final no que aparece em vermelho.</p>
+      <div class="cards" id="desemp-resumo"></div>
+      <div class="panel"><h3>⏱️ Gestão de tempo (o que travou a prova)</h3><div id="desemp-tempo"></div></div>
+      <div class="panel"><h3>📉 Lacunas por matéria (taxa de erro)</h3><div id="desemp-materia"></div></div>
+      <div class="panel"><h3>🎯 Pontos do edital que você mais erra</h3><p class="sub" style="margin-top:0">Ordenado por nº de erros. Clique em "treinar" para abrir o banco já filtrado nesse ponto.</p><div id="desemp-sub"></div></div>
+      <div class="panel"><h3>📋 Simulados registrados</h3><div id="desemp-lista"></div></div>
     </section>
 
     <!-- ANÁLISE -->
@@ -2640,6 +2661,53 @@ Q({prova:"pb2014",ano:2014,banca:"PB",n:70,materia:"controle",tipo:"calc",
 </script>
 <script>
 /* =============================================================================
+   RESULTADOS DOS SIMULADOS JÁ FEITOS pela usuária (plataforma externa + reais)
+   -----------------------------------------------------------------------------
+   Usado pela aba "Meu Desempenho" para diagnosticar lacunas reais: cruza cada
+   questão ERRADA com o subtópico do edital (campo sub do banco de questões),
+   gerando ranking de pontos fracos para focar na reta final.
+   -----------------------------------------------------------------------------
+   Cada simulado:
+     prova   : id da prova no banco (pb2018, pb2012...) — liga às questões p/ achar o subtópico
+     rotulo  : nome amigável
+     data    : quando foi feito (ISO)
+     tempo   : tempo gasto (min) — para análise de ritmo
+     nota    : acertos / total
+     erros   : nºs das questões ERRADAS (1..70)
+     naoFiz  : nºs que NÃO deu tempo de fazer (lacuna de TEMPO, não de conteúdo)
+     obs     : observação livre
+   -----------------------------------------------------------------------------
+   IMPORTANTE sobre confiabilidade do diagnóstico por questão:
+     • gabarito OFICIAL confirmado: pb2010, pb2012, pb2018 → cruzamento 100% confiável.
+     • demais provas (pb2011, pb2014, tp*) → subtópico vem da classificação do banco,
+       confiável para a MATÉRIA; o número exato por subtópico é provisório até os
+       gabaritos oficiais dessas provas serem carregados.
+============================================================================= */
+
+const SIMULADOS_FEITOS = [
+  {
+    prova: "pb2018", rotulo: "Simulado 3 — Petrobras 2018", data: "2026-09-05",
+    tempo: 270, // 4h30
+    nota: { acertos: 52, total: 70 },
+    erros: [4,11,12,16,19,22,37,44,45,46,47,50,51,61,62,63,64,65],
+    naoFiz: [],
+    obs: "74%. Forte em Balanços/Termo/Fluidos; travou em Controle e Operações Unitárias."
+  },
+  {
+    prova: "pb2012", rotulo: "Simulado 4 — Petrobras 2012", data: "2026-09-12",
+    tempo: 240, // 4h
+    nota: { acertos: 48, total: 70 },
+    erros: [4,5,7,24,32,34,36,40,41,42,44,47,48,50,52,55,57,58,59,65,66,67],
+    naoFiz: [],
+    obs: "69%. Operações Unitárias e Controle de novo fracos; alguns erros de Calor e Termo."
+  }
+  // Simulado 5 (Petrobras 2014, 66%, 46/70) e Simulado da Petrobras 2011 (reta de tempo)
+  // entram quando você mandar as relações de acerto/erro + o gabarito oficial.
+];
+
+</script>
+<script>
+/* =============================================================================
    APP — plataforma de estudos (layout claro com sidebar)
    Estado de tópico: 0 não vi | 1 revisei | 2 domino. Persistência: localStorage.
 ============================================================================= */
@@ -2654,7 +2722,7 @@ let progresso=load(LS_KEY);
 let respostas=load(LS_RESP);
 
 const LS_ERROS="transpetro_eq_erros_v1"; // caderno de erros (Leitner + repetição espaçada)
-const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",analise:"Análise das Provas",erros:"Caderno de Erros"};
+const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",analise:"Análise das Provas",erros:"Caderno de Erros"};
 
 /* ---------- navegação ---------- */
 document.querySelectorAll("#nav button").forEach(b=>{
@@ -2667,6 +2735,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     if(b.dataset.s==="dash") renderHome();
     if(b.dataset.s==="provas") renderProvas();
     if(b.dataset.s==="estrategia") renderEstrategia();
+    if(b.dataset.s==="desempenho") renderDesempenho();
     if(b.dataset.s==="erros") renderErros();
     window.scrollTo({top:0,behavior:"smooth"});
   };
@@ -3005,6 +3074,107 @@ function renderBanco(){
     respostas[key]={letra,certo:letra===q.gab}; save(LS_RESP,respostas);
     renderBanco(); renderHome();
   });
+}
+
+/* =============================================================================
+   MEU DESEMPENHO — diagnóstico das lacunas a partir dos simulados já feitos.
+   Cruza cada questão ERRADA (específica, Q21-70) com o subtópico do edital.
+   Separa erro de CONTEÚDO (errou) de erro de TEMPO (não deu tempo / naoFiz).
+============================================================================= */
+const GAB_OFICIAL_OK = ["pb2010","pb2012","pb2018"]; // provas com gabarito oficial confirmado
+function renderDesempenho(){
+  if(typeof SIMULADOS_FEITOS==="undefined" || typeof BANCO==="undefined"){
+    document.getElementById("desemp-resumo").innerHTML="<p class='sub'>Nenhum simulado registrado ainda.</p>"; return;
+  }
+  const sims=SIMULADOS_FEITOS;
+  // ---- Resumo (cards) ----
+  const totalQ=sims.reduce((a,s)=>a+s.nota.total,0);
+  const totalAc=sims.reduce((a,s)=>a+s.nota.acertos,0);
+  const totalNaoFiz=sims.reduce((a,s)=>a+(s.naoFiz?s.naoFiz.length:0),0);
+  const mediaPct=totalQ?Math.round(totalAc/totalQ*100):0;
+  document.getElementById("desemp-resumo").innerHTML=`
+    <div class="mcard"><div class="cap">📋 Simulados feitos</div><div class="big azul">${sims.length}</div><div class="note">registrados aqui</div></div>
+    <div class="mcard"><div class="cap">📈 Média de acerto</div><div class="big verde">${mediaPct}%</div><div class="note">${totalAc}/${totalQ} questões</div></div>
+    <div class="mcard"><div class="cap">📉 Erros no total</div><div class="big amarelo">${totalQ-totalAc}</div><div class="note">a atacar na reta final</div></div>
+    <div class="mcard"><div class="cap">⏱️ Ficaram sem tempo</div><div class="big ${totalNaoFiz?'vermelho':'verde'}">${totalNaoFiz}</div><div class="note">lacuna de ritmo</div></div>`;
+
+  // ---- Gestão de tempo ----
+  const tempoBox=document.getElementById("desemp-tempo");
+  const comTempo=sims.filter(s=>s.tempo);
+  let thtml="";
+  const semTempoSims=sims.filter(s=>s.naoFiz && s.naoFiz.length);
+  if(semTempoSims.length){
+    thtml+=`<div class="alerta-box"><b>⚠️ Lacuna de ritmo detectada.</b> Em ${semTempoSims.length} simulado(s) sobraram questões sem resolver: `+
+      semTempoSims.map(s=>`${s.rotulo.split("—").pop().trim()} (${s.naoFiz.length} questões: ${s.naoFiz.join(", ")})`).join("; ")+
+      `. Isso é problema de ESTRATÉGIA, não de conteúdo — e é 100% treinável. Veja o protocolo de tempo abaixo.</div>`;
+  }
+  thtml+=`<table class="evo"><tr><th style="text-align:left">Simulado</th><th>Tempo</th><th>min/questão</th><th>Sem tempo</th></tr>`;
+  sims.forEach(s=>{
+    const mpq=s.tempo?(s.tempo/s.nota.total).toFixed(1):"—";
+    const alerta=s.naoFiz&&s.naoFiz.length;
+    thtml+=`<tr style="border-top:1px solid var(--borda)"><td class="nm">${s.rotulo}</td><td style="text-align:center">${s.tempo?Math.floor(s.tempo/60)+'h'+(s.tempo%60?(s.tempo%60)+'min':''):'—'}</td><td style="text-align:center">${mpq}</td><td style="text-align:center;${alerta?'color:var(--vermelho);font-weight:700':''}">${alerta?s.naoFiz.length:'0'}</td></tr>`;
+  });
+  thtml+=`</table>`;
+  thtml+=`<div class="como" style="margin-top:10px"><b>🎯 Protocolo anti-estouro de tempo (meta: 3,8 min/questão):</b>
+    <ol style="margin:6px 0 0 18px;font-size:.84rem;color:var(--txt2)">
+      <li><b>1ª passada (rápida):</b> responda só o que você sabe de cara. Se em ~1 min não achou o caminho, PULE e marque no caderno.</li>
+      <li><b>Gerais cedo:</b> Português/Inglês são ponto barato — faça depois das específicas fáceis, nunca no fim exausta.</li>
+      <li><b>2ª passada:</b> volte nas puladas de cálculo pesado. Agora você já garantiu os pontos fáceis.</li>
+      <li><b>Chute consciente:</b> questão sem resposta = 0 garantido. Nos últimos 15 min, não deixe NENHUMA em branco.</li>
+      <li><b>Cronômetro visível:</b> treine os simulados de sábado SEMPRE com timer de 4h30 e meta de terminar em 4h.</li>
+    </ol></div>`;
+  tempoBox.innerHTML=thtml;
+
+  // ---- Agregado de erros por matéria e subtópico (só específicas Q21-70) ----
+  const matErr={}, matTot={}, subErr={};
+  sims.forEach(s=>{
+    BANCO.filter(q=>q.prova===s.prova && q.n>=21 && !q.anulada).forEach(q=>{ matTot[q.materia]=(matTot[q.materia]||0)+1; });
+    (s.erros||[]).filter(n=>n>=21).forEach(n=>{
+      const q=BANCO.find(x=>x.prova===s.prova && x.n===n); if(!q) return;
+      matErr[q.materia]=(matErr[q.materia]||0)+1;
+      subErr[q.sub]=(subErr[q.sub]||0)+1;
+    });
+  });
+
+  // ---- Lacunas por matéria ----
+  const matBox=document.getElementById("desemp-materia");
+  const chaves=Object.keys(matTot).sort((a,b)=>((matErr[b]||0)/matTot[b])-((matErr[a]||0)/matTot[a]));
+  matBox.innerHTML=`<div class="bars">`+chaves.map(k=>{
+    const e=matErr[k]||0, t=matTot[k], pct=Math.round(e/t*100);
+    const cor=pct>=50?"var(--vermelho)":pct>=30?"#b45309":"var(--verde)";
+    const nome=ASSUNTOS[k]?ASSUNTOS[k].split(" (")[0].split("/")[0].trim():k;
+    return `<div class="row"><div class="nm">${nome}</div><div class="track"><div class="fill" style="width:${Math.max(pct,8)}%;background:${cor}">${e}/${t} erros (${pct}%)</div></div></div>`;
+  }).join("")+`</div>`;
+  if(!chaves.length) matBox.innerHTML="<p class='sub'>Sem dados de específicas ainda.</p>";
+
+  // ---- Pontos do edital mais errados ----
+  const subBox=document.getElementById("desemp-sub");
+  const subs=Object.keys(subErr).sort((a,b)=>subErr[b]-subErr[a]);
+  if(!subs.length){ subBox.innerHTML="<p class='sub'>Sem dados ainda.</p>"; }
+  else {
+    subBox.innerHTML=subs.map(id=>{
+      const info=(typeof SUBTOPICOS!=="undefined"&&SUBTOPICOS[id])?SUBTOPICOS[id]:null;
+      const n=subErr[id];
+      const grave=n>=2;
+      return `<div class="lacuna ${grave?'grave':''}">
+        <div class="lac-info"><span class="lac-n">${n}×</span> <b>${id}</b> ${info?info.t:""}</div>
+        <button class="go-q" data-mat="${info?info.materiaKey||"":""}" data-sub="${id}">treinar →</button>
+      </div>`;
+    }).join("");
+    subBox.querySelectorAll(".go-q").forEach(el=>el.onclick=()=>estudarPonto(el.dataset.mat, el.dataset.sub));
+  }
+
+  // ---- Lista de simulados + aviso de confiabilidade ----
+  const listBox=document.getElementById("desemp-lista");
+  listBox.innerHTML=sims.map(s=>{
+    const confiavel=GAB_OFICIAL_OK.includes(s.prova);
+    const pct=Math.round(s.nota.acertos/s.nota.total*100);
+    return `<div class="simrow">
+      <div><b>${s.rotulo}</b> <span class="sub">— ${s.data}</span><br>
+        <span class="sub">${s.nota.acertos}/${s.nota.total} (${pct}%) · ${s.obs||""}</span></div>
+      <span class="tag ${confiavel?'conc':'anulada-tag'}" title="${confiavel?'Gabarito oficial confirmado — diagnóstico 100% confiável':'Gabarito ainda não confirmado — subtópico confiável só para a matéria'}">${confiavel?'✓ gabarito oficial':'⚠ gabarito provisório'}</span>
+    </div>`;
+  }).join("");
 }
 
 /* =============================================================================

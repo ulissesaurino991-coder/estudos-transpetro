@@ -52,8 +52,17 @@
   .mcard{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px}
   .mcard .cap{font-size:.72rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;font-weight:600}
   .mcard .big{font-size:2rem;font-weight:800;margin-top:6px}
-  .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}
+  .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}.mcard .big.vermelho{color:var(--vermelho)}
   .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
+
+  /* MEU DESEMPENHO */
+  .alerta-box{background:var(--vermelho-bg);border-left:3px solid var(--vermelho);border-radius:8px;padding:11px 13px;font-size:.84rem;color:#7f1d1d;margin-bottom:10px}
+  .lacuna{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--borda);border-radius:9px;margin-bottom:7px;font-size:.85rem;background:#fff}
+  .lacuna.grave{border-color:var(--vermelho);background:var(--vermelho-bg)}
+  .lacuna .lac-info{flex:1}
+  .lacuna .lac-n{display:inline-block;min-width:26px;font-weight:800;color:var(--vermelho)}
+  .simrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--borda);font-size:.86rem}
+  .simrow:first-child{border-top:none}
 
   .panel{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px;margin-bottom:16px}
   .progress{height:10px;border-radius:6px;background:var(--bg);overflow:hidden;margin-top:8px}
@@ -231,6 +240,7 @@
     <button data-s="crono"><span class="ico">📅</span> Cronograma</button>
     <button data-s="provas"><span class="ico">🔁</span> Refazer Provas</button>
     <button data-s="banco"><span class="ico">🎯</span> Questões</button>
+    <button data-s="desempenho"><span class="ico">🩺</span> Meu Desempenho</button>
     <button data-s="analise"><span class="ico">📈</span> Análise</button>
     <button data-s="erros"><span class="ico">🧠</span> Caderno de Erros</button>
   </nav>
@@ -316,6 +326,17 @@
       <div id="banco-cont"></div>
     </section>
 
+    <!-- MEU DESEMPENHO -->
+    <section id="desempenho">
+      <h2>🩺 Meu Desempenho nos simulados</h2>
+      <p class="sub">Diagnóstico das provas que você já fez: onde estão suas lacunas reais (por matéria e por ponto do edital) e como está seu ritmo/tempo. Foque a reta final no que aparece em vermelho.</p>
+      <div class="cards" id="desemp-resumo"></div>
+      <div class="panel"><h3>⏱️ Gestão de tempo (o que travou a prova)</h3><div id="desemp-tempo"></div></div>
+      <div class="panel"><h3>📉 Lacunas por matéria (taxa de erro)</h3><div id="desemp-materia"></div></div>
+      <div class="panel"><h3>🎯 Pontos do edital que você mais erra</h3><p class="sub" style="margin-top:0">Ordenado por nº de erros. Clique em "treinar" para abrir o banco já filtrado nesse ponto.</p><div id="desemp-sub"></div></div>
+      <div class="panel"><h3>📋 Simulados registrados</h3><div id="desemp-lista"></div></div>
+    </section>
+
     <!-- ANÁLISE -->
     <section id="analise">
       <h2>Análise das Provas (Cesgranrio)</h2>
@@ -377,6 +398,7 @@
 <script src="dados-provas.js"></script>
 <script src="dados-cronograma.js"></script>
 <script src="dados-questoes.js"></script>
+<script src="dados-simulados.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
