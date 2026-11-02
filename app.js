@@ -13,7 +13,7 @@ let progresso=load(LS_KEY);
 let respostas=load(LS_RESP);
 
 const LS_ERROS="transpetro_eq_erros_v1"; // caderno de erros (Leitner + repetição espaçada)
-const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
+const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",agenda:"Calendário de Estudos",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
 
 /* ---------- navegação ---------- */
 document.querySelectorAll("#nav button").forEach(b=>{
@@ -24,6 +24,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     document.getElementById(b.dataset.s).classList.add("active");
     document.getElementById("topbar-title").textContent=TITULOS[b.dataset.s]||"";
     if(b.dataset.s==="dash") renderHome();
+    if(b.dataset.s==="agenda") renderAgenda();
     if(b.dataset.s==="provas") renderProvas();
     if(b.dataset.s==="estrategia") renderEstrategia();
     if(b.dataset.s==="desempenho") renderDesempenho();
@@ -207,6 +208,93 @@ function renderEstrategia(){
     <div class="fase"><div class="fh" style="background:${f.cor}"><h4>${f.nome}</h4><p>${f.objetivo}</p></div><ul>${f.acoes.map(a=>`<li>${a}</li>`).join("")}</ul></div>`).join("");
   document.getElementById("estrat-regras").innerHTML=E.regras.map(r=>`<div class="regra"><div class="rn">${r.n}</div><div><b>${r.titulo}</b><span>${r.txt}</span></div></div>`).join("");
   document.getElementById("estrat-ordem").innerHTML=E.ordemProvas.map(o=>`<div class="ordem"><div class="op">${o.pos}</div><div><b>${o.prova}</b><span>${o.motivo}</span></div></div>`).join("");
+}
+
+/* =============================================================================
+   CALENDÁRIO (estilo agenda) — clicável, plano fechado por dia
+============================================================================= */
+const LS_AGENDA="transpetro_eq_agenda_feito_v1";
+let agendaFeito=JSON.parse(localStorage.getItem(LS_AGENDA)||"{}");
+function salvarAgendaFeito(){ localStorage.setItem(LS_AGENDA,JSON.stringify(agendaFeito)); }
+const MES_NOME={10:"Outubro 2026",11:"Novembro 2026",12:"Dezembro 2026"};
+const DOW_LABEL=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+function renderAgenda(){
+  if(typeof CALENDARIO==="undefined"){ document.getElementById("agenda-grid").innerHTML="<p class='sub'>Calendário não carregado.</p>"; return; }
+  // mapa rápido iso->dia
+  const mapa={}; CALENDARIO.forEach(d=>mapa[d.data]=d);
+  const hojeIso=(function(){const n=new Date();n.setHours(0,0,0,0);return n.toISOString().slice(0,10);})();
+  // meses a renderizar: out(só 31), nov inteiro, dez(1-6)
+  const meses=[{ano:2026,mes:10},{ano:2026,mes:11},{ano:2026,mes:12}];
+  let html="";
+  meses.forEach(({ano,mes})=>{
+    const primeiro=new Date(Date.UTC(ano,mes-1,1));
+    const diasNoMes=new Date(Date.UTC(ano,mes,0)).getUTCDate();
+    // só mostra meses/dias dentro do intervalo 31/out–06/dez
+    let cells="";
+    const offset=primeiro.getUTCDay(); // 0=Dom
+    for(let i=0;i<offset;i++) cells+=`<div class="ag-cell vazio"></div>`;
+    for(let dia=1;dia<=diasNoMes;dia++){
+      const iso=`${ano}-${String(mes).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+      const plano=mapa[iso];
+      if(!plano){
+        // fora do intervalo de estudo: célula apagada
+        cells+=`<div class="ag-cell vazio"><span class="dnum" style="color:var(--txt3)">${dia}</span></div>`;
+        continue;
+      }
+      const feito=agendaFeito[iso]?"feito":"";
+      const hoje=iso===hojeIso?"hoje":"";
+      cells+=`<div class="ag-cell t-${plano.tipo} ${feito} ${hoje}" data-iso="${iso}">
+        <span class="dnum">${dia}</span>
+        <span class="dtit">${plano.titulo}</span>
+      </div>`;
+    }
+    // só adiciona o mês se ele tem algum plano
+    const temPlano=CALENDARIO.some(d=>{const [a,m]=d.data.split("-");return +a===ano&&+m===mes;});
+    if(temPlano){
+      html+=`<div class="agenda-mes"><h3>${MES_NOME[mes]}</h3>
+        <div class="agenda-dow">${DOW_LABEL.map(x=>`<span>${x}</span>`).join("")}</div>
+        <div class="agenda-grid">${cells}</div></div>`;
+    }
+  });
+  document.getElementById("agenda-grid").innerHTML=html;
+  document.querySelectorAll("#agenda-grid .ag-cell[data-iso]").forEach(c=>{
+    c.onclick=()=>abrirDiaAgenda(c.dataset.iso);
+  });
+  // abre hoje por padrão (se estiver no intervalo), senão o 1º dia
+  const alvo=mapa[hojeIso]?hojeIso:CALENDARIO[0].data;
+  abrirDiaAgenda(alvo);
+}
+
+function abrirDiaAgenda(iso){
+  const plano=(CALENDARIO||[]).find(d=>d.data===iso); if(!plano) return;
+  const box=document.getElementById("agenda-detalhe");
+  const [a,m,d]=iso.split("-");
+  const dt=new Date(Date.UTC(+a,+m-1,+d));
+  const nomeDia=DOW_LABEL[dt.getUTCDay()];
+  const tipoLabel={estudo:"📘 Dia de estudo",sim:"🎯 Simulado",prova:"🔴 Prova",rev:"🟡 Revisão/correção",leve:"🟣 Revisão leve"}[plano.tipo]||"";
+  const feito=!!agendaFeito[iso];
+  let html=`<h3>${nomeDia}, ${d}/${m} — ${plano.titulo}</h3><div class="sub">${tipoLabel}</div>`;
+  if(plano.manha) html+=`<div class="det-bloco"><div class="lab">☀️ Manhã (+1h30 — você é mais produtiva)</div><p>${plano.manha}</p></div>`;
+  if(plano.tarde) html+=`<div class="det-bloco"><div class="lab">🌙 ${plano.tipo==="sim"||plano.tipo==="prova"?"Tarefa":"Tarde (1h30)"}</div><p>${plano.tarde}</p></div>`;
+  if(plano.questoes && plano.questoes.length){
+    html+=`<div class="det-bloco"><div class="lab">🎯 Questões do banco para hoje (${plano.questoes.length})</div><p>${plano.questoes.map(q=>q.replace("#"," Q")).join(" · ")}</p></div>`;
+  }
+  if(plano.obs) html+=`<div class="det-obs">💡 ${plano.obs}</div>`;
+  html+=`<div class="det-acoes">`;
+  if(plano.materia){
+    html+=`<button class="btn sm" id="ag-abrir-banco">🎯 Abrir essas questões no banco</button>`;
+  }
+  html+=`<button class="btn sm ${feito?'ghost':'verde'}" id="ag-feito">${feito?'↩ Desmarcar':'✓ Marcar como feito'}</button>`;
+  html+=`</div>`;
+  box.innerHTML=html; box.style.display="block";
+  box.scrollIntoView({behavior:"smooth",block:"nearest"});
+  const bAbrir=document.getElementById("ag-abrir-banco");
+  if(bAbrir) bAbrir.onclick=()=>{ if(typeof estudarPonto==="function") estudarPonto(plano.materia, plano.sub||"todos"); };
+  document.getElementById("ag-feito").onclick=()=>{
+    if(agendaFeito[iso]) delete agendaFeito[iso]; else agendaFeito[iso]=true;
+    salvarAgendaFeito(); renderAgenda();
+  };
 }
 
 /* =============================================================================

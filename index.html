@@ -55,6 +55,33 @@
   .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}.mcard .big.vermelho{color:var(--vermelho)}
   .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
 
+  /* CALENDÁRIO estilo agenda */
+  .agenda-mes{margin-bottom:22px}
+  .agenda-mes h3{font-size:1rem;margin-bottom:10px;color:var(--txt)}
+  .agenda-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+  .agenda-dow span{text-align:center;font-size:.72rem;font-weight:700;color:var(--txt2);text-transform:uppercase}
+  .agenda-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .ag-cell{min-height:74px;border:1px solid var(--borda);border-radius:10px;padding:6px 7px;background:var(--card);cursor:pointer;transition:.12s;display:flex;flex-direction:column;gap:3px;position:relative}
+  .ag-cell:hover{border-color:var(--azul);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .ag-cell.vazio{background:transparent;border:none;cursor:default}
+  .ag-cell .dnum{font-size:.82rem;font-weight:700;color:var(--txt)}
+  .ag-cell .dtit{font-size:.68rem;line-height:1.15;color:var(--txt2);overflow:hidden}
+  .ag-cell.t-estudo{border-left:4px solid var(--azul)}
+  .ag-cell.t-sim{border-left:4px solid var(--verde);background:var(--verde-bg)}
+  .ag-cell.t-prova{border-left:4px solid #dc2626;background:var(--vermelho-bg)}
+  .ag-cell.t-rev{border-left:4px solid var(--amarelo);background:var(--amarelo-bg)}
+  .ag-cell.t-leve{border-left:4px solid #a855f7}
+  .ag-cell.feito{opacity:.55}
+  .ag-cell.feito::after{content:"✓";position:absolute;top:5px;right:7px;color:var(--verde);font-weight:800;font-size:.8rem}
+  .ag-cell.hoje{outline:2px solid var(--azul);outline-offset:1px}
+  .agenda-det{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px;margin-top:16px;border-top:4px solid var(--azul)}
+  .agenda-det h3{font-size:1.1rem;margin-bottom:4px}
+  .agenda-det .det-bloco{margin-top:12px}
+  .agenda-det .det-bloco .lab{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--txt2)}
+  .agenda-det .det-bloco p{font-size:.88rem;margin-top:3px}
+  .agenda-det .det-obs{background:var(--amarelo-bg);border-radius:8px;padding:9px 11px;font-size:.84rem;margin-top:12px;color:#92400e}
+  .det-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
   /* MEU DESEMPENHO */
   .alerta-box{background:var(--vermelho-bg);border-left:3px solid var(--vermelho);border-radius:8px;padding:11px 13px;font-size:.84rem;color:#7f1d1d;margin-bottom:10px}
   .lacuna{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--borda);border-radius:9px;margin-bottom:7px;font-size:.85rem;background:#fff}
@@ -237,6 +264,7 @@
     <button data-s="dash" class="active"><span class="ico">🏠</span> Home</button>
     <button data-s="edital"><span class="ico">📋</span> Edital</button>
     <button data-s="estrategia"><span class="ico">🥷</span> Estratégia</button>
+    <button data-s="agenda"><span class="ico">🗓️</span> Calendário</button>
     <button data-s="crono"><span class="ico">📅</span> Cronograma</button>
     <button data-s="provas"><span class="ico">🔁</span> Refazer Provas</button>
     <button data-s="banco"><span class="ico">🎯</span> Questões</button>
@@ -298,6 +326,14 @@
       <h3>📅 As 3 fases do mês</h3><div id="estrat-fases"></div>
       <h3>⚔️ As 7 regras de ouro</h3><div id="estrat-regras"></div>
       <h3>🔁 Ordem inteligente das 9 provas</h3><div id="estrat-ordem"></div>
+    </section>
+
+    <!-- CALENDÁRIO (estilo agenda) -->
+    <section id="agenda">
+      <h2>🗓️ Calendário de Estudos</h2>
+      <p class="sub">Clique em um dia para ver o plano fechado. Faça SÓ o que estiver ali. 🟦 estudo · 🟩 simulado/prova · 🟨 revisão leve. Os dias com ✓ você já concluiu (clique em "marcar como feito").</p>
+      <div id="agenda-grid"></div>
+      <div id="agenda-detalhe" class="agenda-det" style="display:none"></div>
     </section>
 
     <!-- CRONOGRAMA -->
@@ -407,13 +443,14 @@
   </main>
 </div>
 
-<script src="dados-edital.js?v=8"></script>
-<script src="dados-estrategia.js?v=8"></script>
-<script src="dados-provas.js?v=8"></script>
-<script src="dados-cronograma.js?v=8"></script>
-<script src="dados-questoes.js?v=8"></script>
-<script src="dados-simulados.js?v=8"></script>
-<script src="dados-tatica-prova.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="dados-edital.js?v=9"></script>
+<script src="dados-estrategia.js?v=9"></script>
+<script src="dados-provas.js?v=9"></script>
+<script src="dados-cronograma.js?v=9"></script>
+<script src="dados-calendario.js?v=9"></script>
+<script src="dados-questoes.js?v=9"></script>
+<script src="dados-simulados.js?v=9"></script>
+<script src="dados-tatica-prova.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

@@ -55,6 +55,33 @@
   .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}.mcard .big.vermelho{color:var(--vermelho)}
   .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
 
+  /* CALENDÁRIO estilo agenda */
+  .agenda-mes{margin-bottom:22px}
+  .agenda-mes h3{font-size:1rem;margin-bottom:10px;color:var(--txt)}
+  .agenda-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+  .agenda-dow span{text-align:center;font-size:.72rem;font-weight:700;color:var(--txt2);text-transform:uppercase}
+  .agenda-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .ag-cell{min-height:74px;border:1px solid var(--borda);border-radius:10px;padding:6px 7px;background:var(--card);cursor:pointer;transition:.12s;display:flex;flex-direction:column;gap:3px;position:relative}
+  .ag-cell:hover{border-color:var(--azul);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .ag-cell.vazio{background:transparent;border:none;cursor:default}
+  .ag-cell .dnum{font-size:.82rem;font-weight:700;color:var(--txt)}
+  .ag-cell .dtit{font-size:.68rem;line-height:1.15;color:var(--txt2);overflow:hidden}
+  .ag-cell.t-estudo{border-left:4px solid var(--azul)}
+  .ag-cell.t-sim{border-left:4px solid var(--verde);background:var(--verde-bg)}
+  .ag-cell.t-prova{border-left:4px solid #dc2626;background:var(--vermelho-bg)}
+  .ag-cell.t-rev{border-left:4px solid var(--amarelo);background:var(--amarelo-bg)}
+  .ag-cell.t-leve{border-left:4px solid #a855f7}
+  .ag-cell.feito{opacity:.55}
+  .ag-cell.feito::after{content:"✓";position:absolute;top:5px;right:7px;color:var(--verde);font-weight:800;font-size:.8rem}
+  .ag-cell.hoje{outline:2px solid var(--azul);outline-offset:1px}
+  .agenda-det{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px;margin-top:16px;border-top:4px solid var(--azul)}
+  .agenda-det h3{font-size:1.1rem;margin-bottom:4px}
+  .agenda-det .det-bloco{margin-top:12px}
+  .agenda-det .det-bloco .lab{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--txt2)}
+  .agenda-det .det-bloco p{font-size:.88rem;margin-top:3px}
+  .agenda-det .det-obs{background:var(--amarelo-bg);border-radius:8px;padding:9px 11px;font-size:.84rem;margin-top:12px;color:#92400e}
+  .det-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
   /* MEU DESEMPENHO */
   .alerta-box{background:var(--vermelho-bg);border-left:3px solid var(--vermelho);border-radius:8px;padding:11px 13px;font-size:.84rem;color:#7f1d1d;margin-bottom:10px}
   .lacuna{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--borda);border-radius:9px;margin-bottom:7px;font-size:.85rem;background:#fff}
@@ -237,6 +264,7 @@
     <button data-s="dash" class="active"><span class="ico">🏠</span> Home</button>
     <button data-s="edital"><span class="ico">📋</span> Edital</button>
     <button data-s="estrategia"><span class="ico">🥷</span> Estratégia</button>
+    <button data-s="agenda"><span class="ico">🗓️</span> Calendário</button>
     <button data-s="crono"><span class="ico">📅</span> Cronograma</button>
     <button data-s="provas"><span class="ico">🔁</span> Refazer Provas</button>
     <button data-s="banco"><span class="ico">🎯</span> Questões</button>
@@ -298,6 +326,14 @@
       <h3>📅 As 3 fases do mês</h3><div id="estrat-fases"></div>
       <h3>⚔️ As 7 regras de ouro</h3><div id="estrat-regras"></div>
       <h3>🔁 Ordem inteligente das 9 provas</h3><div id="estrat-ordem"></div>
+    </section>
+
+    <!-- CALENDÁRIO (estilo agenda) -->
+    <section id="agenda">
+      <h2>🗓️ Calendário de Estudos</h2>
+      <p class="sub">Clique em um dia para ver o plano fechado. Faça SÓ o que estiver ali. 🟦 estudo · 🟩 simulado/prova · 🟨 revisão leve. Os dias com ✓ você já concluiu (clique em "marcar como feito").</p>
+      <div id="agenda-grid"></div>
+      <div id="agenda-detalhe" class="agenda-det" style="display:none"></div>
     </section>
 
     <!-- CRONOGRAMA -->
@@ -1222,6 +1258,183 @@ const EXTRA_MANHA = {
   ],
   obs: "Termo e Fluidos (seus fortes) NÃO entram na dose de manhã a não ser que apareçam como erro — eles ficam na revisão leve das 2h da tarde. Foco da manhã = o que dói."
 };
+
+</script>
+<script>
+/* =============================================================================
+   CALENDÁRIO DE ESTUDOS — estilo agenda, clicável dia a dia (31/out → 06/dez/2026)
+   -----------------------------------------------------------------------------
+   A usuária faz SÓ o que estiver no dia. Cada dia útil tem:
+     • MANHÃ (+1h30, mais produtiva): questões NOVAS da plataforma paga do assunto
+       do dia + Caderno de Erros (repetição espaçada) + 3 questões de gramática.
+     • TARDE (1h30): revisar um bloco fixo de questões do BANCO (provas antigas),
+       listadas por id "ANO#Q" — ex.: 2018#45 = Petrobras 2018, questão 45.
+   Sábados = provas TRANSPETRO cronometradas. Domingos = correção + revisão.
+   -----------------------------------------------------------------------------
+   Distribuição pensada para:
+     1) resolver TODAS as questões do banco até a prova;
+     2) dar MAIS dias às lacunas (Operações Unitárias, Controle) e menos aos
+        pontos fortes (Termo, Fluidos — só manutenção);
+     3) NÃO deixar nada pesado perto do dia 06/12 (última semana = leve + espelho).
+   -----------------------------------------------------------------------------
+   Estrutura de cada dia:
+     data   : ISO "AAAA-MM-DD"
+     tipo   : "sim" simulado | "prova" prova real (dia da prova) | "rev" revisão/correção | "estudo" dia útil | "leve" revisão leve
+     titulo : rótulo curto do dia (aparece no quadradinho do calendário)
+     materia: chave p/ filtrar questões no banco (opcional) — liga ao botão "abrir no banco"
+     sub    : subtópico do edital (opcional)
+     manha  : o que fazer na 1h30 da manhã (string) — opcional em dias de prova
+     tarde  : o que fazer na 1h30 da tarde (string)
+     questoes: lista de ids "ANO#Q" do banco p/ resolver/revisar no dia (opcional)
+     obs    : observação/alerta (opcional)
+============================================================================= */
+
+const CALENDARIO = [
+  // ===== SEMANA 1 (31/out – 06/nov) — Balanços + arrancada =====
+  { data:"2026-10-31", tipo:"sim", titulo:"🎯 Simulado TP 2011",
+    tarde:"SIMULADO 1 cronometrado (4h30): Transpetro 2011 completa — 10 Port + 10 Inglês + 50 específicas. Já treine o MÉTODO DAS VOLTAS (veja aba Tática de Prova). Sem energético ainda — isole o método.",
+    obs:"Sábado de simulado. Faça como se fosse o dia da prova: timer visível, meta terminar em 4h." },
+  { data:"2026-11-01", tipo:"rev", titulo:"Correção Simulado 1",
+    manha:"Correção do Simulado 1: marque acerto/erro na aba Meu Desempenho. Jogue TODO erro no Caderno de Erros.",
+    tarde:"Releia os 3 tópicos mais fracos do simulado. 1 texto de Inglês + 10 questões de Português (gramática)." },
+  { data:"2026-11-02", tipo:"estudo", titulo:"Balanços I", materia:"balancos",
+    manha:"NOVAS (plataforma paga): 15-20 questões de Balanços de massa. + Caderno de Erros (cards que vencem hoje) + 3 questões de gramática.",
+    tarde:"BANCO — Balanços (bloco 1): frações, densidade, reagente limitante/excesso, combustão.",
+    questoes:["2018#21","2018#22","2018#23","2018#24","2018#25","2018#26","2018#27","2018#28"] },
+  { data:"2026-11-03", tipo:"estudo", titulo:"Balanços II", materia:"balancos",
+    manha:"NOVAS: 15-20 questões de Balanços com reciclo/purga. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Balanços (bloco 2): reciclo, by-pass, conversão global×por passe, umidade.",
+    questoes:["2011#21","2011#22","2011#23","2011#24","2011#25","2011#26","2011#28","2011#29"] },
+  { data:"2026-11-04", tipo:"estudo", titulo:"Balanços III", materia:"balancos",
+    manha:"NOVAS: 15-20 questões de Balanços. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Balanços (bloco 3): fechar a matéria (2012 + 2014).",
+    questoes:["2012#23","2012#30","2012#31","2012#32","2012#33","2012#36","2012#37","2012#39","2012#40","2014#21","2014#22","2014#23"] },
+  { data:"2026-11-05", tipo:"sim", titulo:"🎯 Simulado PB 2010 (você vai à plataforma)",
+    tarde:"SIMULADO: Petrobras 2010 completa (você disse que terá tempo a mais hoje p/ ir fazer). Trate como prova real, cronometrado, MÉTODO DAS VOLTAS. É a ÚNICA que você nunca fez — ótimo ensaio 'virgem' da tática nova.",
+    obs:"Depois, traga a relação de acertos/erros: a PB2010 eu tenho gabarito oficial, diagnóstico sai 100%." },
+  { data:"2026-11-06", tipo:"estudo", titulo:"Correção PB2010 + Balanços resto", materia:"balancos",
+    manha:"Correção da PB2010 (jogue erros no Caderno). NOVAS: 10 questões de Balanços.",
+    tarde:"BANCO — Balanços (fechar): questões restantes de 2014.",
+    questoes:["2014#24","2014#25","2014#26","2014#27","2014#28","2014#29","2014#30"] },
+
+  // ===== SEMANA 2 (07–13/nov) — Termodinâmica (forte: manutenção) =====
+  { data:"2026-11-07", tipo:"sim", titulo:"🎯 Simulado TP 2012",
+    tarde:"SIMULADO 2 cronometrado (4h30): Transpetro 2012. Teste agora o MÉTODO DAS VOLTAS + LÍNGUAS NO MEIO (após a 1ª volta). Anote se descansou e rendeu mais depois.",
+    obs:"Sábado de simulado. 2ª tática a testar: línguas no meio como descanso ativo." },
+  { data:"2026-11-08", tipo:"rev", titulo:"Correção Simulado 2",
+    manha:"Correção do Simulado 2 (Meu Desempenho + Caderno de Erros).",
+    tarde:"Releia erros da Semana 1 + 2. 10 questões de Português + 1 texto de Inglês." },
+  { data:"2026-11-09", tipo:"estudo", titulo:"Termo I (manutenção)", materia:"termo",
+    manha:"NOVAS: 15-20 questões de Termo. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Termo (bloco 1): 1ª/2ª Leis, energia interna, ciclos.",
+    questoes:["2018#29","2018#30","2018#31","2018#32","2018#33","2018#34","2018#35","2018#36"] },
+  { data:"2026-11-10", tipo:"estudo", titulo:"Termo II (manutenção)", materia:"termo",
+    manha:"NOVAS: 15-20 questões de Termo. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Termo (bloco 2): Maxwell, estagnação, equilíbrio, refrigeração.",
+    questoes:["2018#37","2018#38","2018#39","2018#40","2018#60","2012#21","2012#22","2012#24","2012#25","2012#26"] },
+  { data:"2026-11-11", tipo:"estudo", titulo:"Termo III (fechar)", materia:"termo",
+    manha:"NOVAS: 10 questões de Termo. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Termo (bloco 3): fechar a matéria (2011 + 2014).",
+    questoes:["2012#27","2012#28","2012#29","2012#34","2012#50","2011#27","2011#32","2011#33","2011#34","2011#35"] },
+  { data:"2026-11-12", tipo:"estudo", titulo:"Termo IV (fechar)", materia:"termo",
+    manha:"NOVAS: 10 de Termo. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Termo (resto 2011 + 2014) — encerra Termo.",
+    questoes:["2011#36","2011#37","2011#38","2011#39","2011#40","2014#31","2014#32","2014#33","2014#34","2014#35","2014#36","2014#37","2014#38","2014#39","2014#40"] },
+  { data:"2026-11-13", tipo:"estudo", titulo:"Calor I", materia:"calor",
+    manha:"NOVAS: 15-20 questões de Transferência de Calor. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Calor (bloco 1): condução, parede composta, convecção, radiação.",
+    questoes:["2018#56","2018#57","2018#58","2018#59","2018#66","2018#67","2012#56","2012#57"] },
+
+  // ===== SEMANA 3 (14–20/nov) — Operações Unitárias (LACUNA: mais dias) =====
+  { data:"2026-11-14", tipo:"sim", titulo:"🎯 Simulado TP 2018",
+    tarde:"SIMULADO 3 cronometrado (4h30): Transpetro 2018 (Proc. Químico). Agora teste ENERGÉTICO (1os 15 min) + comida nas pausas, com estômago igual ao do dia da prova.",
+    obs:"Sábado de simulado. 3ª tática: energético + comida — veja se cai bem." },
+  { data:"2026-11-15", tipo:"rev", titulo:"Correção Simulado 3",
+    manha:"Correção do Simulado 3. Cheque a % de cobertura do edital no app.",
+    tarde:"Releia erros das Semanas 1-3. 10 Português + 1 texto Inglês." },
+  { data:"2026-11-16", tipo:"estudo", titulo:"Op. Unitárias I ⭐", materia:"opunit",
+    manha:"NOVAS: 20 questões de Operações Unitárias (SUA LACUNA nº1). + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Op. Unitárias (bloco 1): destilação, bolha/orvalho, flash, McCabe.",
+    questoes:["2018#43","2018#44","2018#45","2018#46","2018#47","2018#48","2018#49","2018#50","2018#51"] },
+  { data:"2026-11-17", tipo:"estudo", titulo:"Op. Unitárias II ⭐", materia:"opunit",
+    manha:"NOVAS: 20 questões de Operações Unitárias. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Op. Unitárias (bloco 2): absorção, extração, azeotrópica (2012).",
+    questoes:["2012#35","2012#38","2012#41","2012#42","2012#43","2012#44","2012#45","2012#46","2012#47","2012#48","2012#49"] },
+  { data:"2026-11-18", tipo:"estudo", titulo:"Op. Unitárias III ⭐", materia:"opunit",
+    manha:"NOVAS: 20 questões de Operações Unitárias. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Op. Unitárias (bloco 3): fechar (2011 + 2014).",
+    questoes:["2011#30","2011#31","2011#41","2011#42","2011#43","2011#44","2011#45","2011#46","2011#47","2011#48","2011#51"] },
+  { data:"2026-11-19", tipo:"estudo", titulo:"Op. Unitárias IV ⭐ (fechar)", materia:"opunit",
+    manha:"NOVAS: 15 questões de Op. Unitárias. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Op. Unitárias (resto 2014) — encerra a matéria.",
+    questoes:["2014#41","2014#42","2014#43","2014#44","2014#45","2014#46","2014#47","2014#48","2014#51"] },
+  { data:"2026-11-20", tipo:"estudo", titulo:"Fluidos I (manutenção)", materia:"fluidos",
+    manha:"NOVAS: 15 questões de Mecânica dos Fluidos. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Fluidos (bloco 1): Bernoulli, Reynolds, perda de carga, bombas.",
+    questoes:["2018#41","2018#42","2018#52","2018#53","2018#54","2018#55","2012#51","2012#52"] },
+
+  // ===== SEMANA 4 (21–27/nov) — Fluidos + Calor + Cinética + Controle (LACUNA) =====
+  { data:"2026-11-21", tipo:"sim", titulo:"🎯 Simulado TP 2023 ⭐ (espelho)",
+    tarde:"SIMULADO 4 cronometrado (4h30): Transpetro 2023 — ENGENHARIA QUÍMICA. É o ESPELHO: mesma ênfase/banca, a mais parecida com 06/12. ENSAIO GERAL de TODAS as táticas juntas.",
+    obs:"Sábado. Ensaio geral: método das voltas + línguas no meio + energético + comida. Nada novo no dia da prova." },
+  { data:"2026-11-22", tipo:"rev", titulo:"Correção espelho 2023",
+    manha:"Correção DETALHADA do espelho 2023 — é o retrato mais fiel da sua prova. Jogue tudo no Caderno.",
+    tarde:"Revisão espaçada: releia erros de todas as semanas." },
+  { data:"2026-11-23", tipo:"estudo", titulo:"Fluidos II (fechar)", materia:"fluidos",
+    manha:"NOVAS: 15 de Fluidos. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Fluidos (fechar): NPSH, cavitação, Venturi, reologia (2011+2012+2014).",
+    questoes:["2012#53","2012#54","2012#55","2011#49","2011#50","2011#52","2011#53","2011#54","2011#55","2014#49","2014#50","2014#52","2014#53","2014#54","2014#55"] },
+  { data:"2026-11-24", tipo:"estudo", titulo:"Calor II (fechar)", materia:"calor",
+    manha:"NOVAS: 15 de Calor. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Calor (fechar): trocadores, MLDT, ε-NUT (2012+2011+2014).",
+    questoes:["2012#58","2012#59","2012#60","2012#61","2012#62","2011#56","2011#57","2011#58","2011#59","2011#60","2011#64","2011#65","2014#56","2014#57","2014#58","2014#59","2014#60","2014#64","2014#65"] },
+  { data:"2026-11-25", tipo:"estudo", titulo:"Cinética e Reatores", materia:"cinetica",
+    manha:"NOVAS: 15 de Cinética/Reatores. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Cinética (toda a matéria): Arrhenius, CSTR, PFR, projeto de reator.",
+    questoes:["2018#68","2018#69","2018#70","2012#64","2012#69","2012#70","2011#66","2011#67","2011#68","2014#66","2014#67","2014#68"] },
+  { data:"2026-11-26", tipo:"estudo", titulo:"Controle I ⭐", materia:"controle",
+    manha:"NOVAS: 20 de Controle (SUA LACUNA nº2). Foco: função de transferência / Laplace. + Caderno + 3 de gramática.",
+    tarde:"BANCO — Controle (bloco 1): Laplace, 1ª/2ª ordem, malha aberta×fechada.",
+    questoes:["2018#61","2018#62","2018#63","2018#64","2018#65","2012#63","2012#65","2012#66"] },
+  { data:"2026-11-27", tipo:"estudo", titulo:"Controle II ⭐ (fechar)", materia:"controle",
+    manha:"NOVAS: 20 de Controle. + Caderno de Erros + 3 de gramática.",
+    tarde:"BANCO — Controle (fechar): PID, offset, estabilidade (2012+2011+2014).",
+    questoes:["2012#67","2012#68","2011#61","2011#62","2011#63","2011#69","2011#70","2014#61","2014#62","2014#63","2014#69","2014#70"] },
+
+  // ===== SEMANA 5 (28/nov – 06/dez) — Química + revisão leve + blindagem (nada pesado) =====
+  { data:"2026-11-28", tipo:"estudo", titulo:"Química (diferencial)", materia:"quimica",
+    manha:"NOVAS: 15 de Química (eletroquímica/Kps, corrosão, análise instrumental — seu diferencial da ênfase 27). + Caderno + 3 de gramática.",
+    tarde:"BANCO — Química: abra o filtro 'Química' no banco e faça TODAS (são 9, aparecem nas TP 2018/2023). Poucas, mas valem no desempate.",
+    questoes:["tp2023#21","tp2023#22","tp2023#65","tp2023#66","tp2023#67","tp2023#68","tp2023#69","tp2023#70","tp2018#37"],
+    obs:"Química cai sobretudo na TRANSPETRO (sua banca-alvo). Priorize." },
+  { data:"2026-11-29", tipo:"rev", titulo:"Varredura do edital",
+    manha:"VARREDURA: abra o Edital no app e feche TODO item ainda 'não vi'. Meta: 99/99 tocados.",
+    tarde:"Revisão espaçada do Caderno de Erros (todos os cards que venceram). 10 Português." },
+  { data:"2026-11-30", tipo:"leve", titulo:"Revisão leve — lacunas",
+    manha:"NOVAS: 15 questões SÓ de Operações Unitárias e Controle (suas lacunas), ritmo de prova.",
+    tarde:"Refaça no banco só as que você ERROU de Op. Unitárias e Controle (filtro por matéria, veja as marcadas ❌)." },
+  { data:"2026-12-01", tipo:"leve", titulo:"Revisão leve — Termo/Fluidos",
+    manha:"NOVAS: 10 questões de Termo e Fluidos (manutenção dos fortes). + Caderno.",
+    tarde:"Releia a folha de fórmulas-chave. 1 texto de Inglês + 10 de Português." },
+  { data:"2026-12-02", tipo:"leve", titulo:"Revisão leve — Balanços/Calor",
+    manha:"NOVAS: 10 questões de Balanços e Calor. + Caderno de Erros.",
+    tarde:"Refaça as que errou de Balanços e Calor no banco. Revisão do Caderno." },
+  { data:"2026-12-03", tipo:"leve", titulo:"Revisão leve — Cinética/Química + Gerais",
+    manha:"NOVAS: 10 de Cinética e Química. + Caderno.",
+    tarde:"Blindagem de Gerais: 10 Português (gramática) + 1 texto de Inglês. Nada de assunto novo." },
+  { data:"2026-12-04", tipo:"leve", titulo:"Folha de fórmulas + logística",
+    manha:"Revisão LEVE: folha única de fórmulas-chave (Maxwell, Arrhenius, projeto de reator, Bernoulli, MLDT, 64/Re). Sem assunto novo.",
+    tarde:"Confira documento oficial com foto + caneta preta transparente. Releia a aba Tática de Prova 1×." },
+  { data:"2026-12-05", tipo:"leve", titulo:"Descanso ativo",
+    manha:"Descanso ativo: releia o Caderno de Erros 1× (só leitura, sem resolver). 1 texto leve de Inglês.",
+    tarde:"Prepare tudo para amanhã (roupa, documento, caneta, energético, barrinha/sanduíche, água). Durma cedo." },
+  { data:"2026-12-06", tipo:"prova", titulo:"🎯 DIA DA PROVA",
+    tarde:"PROVA TRANSPETRO 06/12. Chegue 1h antes. MÉTODO DAS VOLTAS + línguas no meio + energético nos 1os 15min + 30min finais p/ cartão e revisão. Você treinou tudo. Confia.",
+    obs:"Não zere Português nem Inglês (classificatórios + eliminatórios). Nenhuma questão em branco." }
+];
+
+// Helper: pega o plano de um dia pelo ISO
+function diaCalendario(iso){ return CALENDARIO.find(d=>d.data===iso) || null; }
 
 </script>
 <script>
@@ -2899,7 +3112,7 @@ let progresso=load(LS_KEY);
 let respostas=load(LS_RESP);
 
 const LS_ERROS="transpetro_eq_erros_v1"; // caderno de erros (Leitner + repetição espaçada)
-const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
+const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",agenda:"Calendário de Estudos",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
 
 /* ---------- navegação ---------- */
 document.querySelectorAll("#nav button").forEach(b=>{
@@ -2910,6 +3123,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     document.getElementById(b.dataset.s).classList.add("active");
     document.getElementById("topbar-title").textContent=TITULOS[b.dataset.s]||"";
     if(b.dataset.s==="dash") renderHome();
+    if(b.dataset.s==="agenda") renderAgenda();
     if(b.dataset.s==="provas") renderProvas();
     if(b.dataset.s==="estrategia") renderEstrategia();
     if(b.dataset.s==="desempenho") renderDesempenho();
@@ -3093,6 +3307,93 @@ function renderEstrategia(){
     <div class="fase"><div class="fh" style="background:${f.cor}"><h4>${f.nome}</h4><p>${f.objetivo}</p></div><ul>${f.acoes.map(a=>`<li>${a}</li>`).join("")}</ul></div>`).join("");
   document.getElementById("estrat-regras").innerHTML=E.regras.map(r=>`<div class="regra"><div class="rn">${r.n}</div><div><b>${r.titulo}</b><span>${r.txt}</span></div></div>`).join("");
   document.getElementById("estrat-ordem").innerHTML=E.ordemProvas.map(o=>`<div class="ordem"><div class="op">${o.pos}</div><div><b>${o.prova}</b><span>${o.motivo}</span></div></div>`).join("");
+}
+
+/* =============================================================================
+   CALENDÁRIO (estilo agenda) — clicável, plano fechado por dia
+============================================================================= */
+const LS_AGENDA="transpetro_eq_agenda_feito_v1";
+let agendaFeito=JSON.parse(localStorage.getItem(LS_AGENDA)||"{}");
+function salvarAgendaFeito(){ localStorage.setItem(LS_AGENDA,JSON.stringify(agendaFeito)); }
+const MES_NOME={10:"Outubro 2026",11:"Novembro 2026",12:"Dezembro 2026"};
+const DOW_LABEL=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+function renderAgenda(){
+  if(typeof CALENDARIO==="undefined"){ document.getElementById("agenda-grid").innerHTML="<p class='sub'>Calendário não carregado.</p>"; return; }
+  // mapa rápido iso->dia
+  const mapa={}; CALENDARIO.forEach(d=>mapa[d.data]=d);
+  const hojeIso=(function(){const n=new Date();n.setHours(0,0,0,0);return n.toISOString().slice(0,10);})();
+  // meses a renderizar: out(só 31), nov inteiro, dez(1-6)
+  const meses=[{ano:2026,mes:10},{ano:2026,mes:11},{ano:2026,mes:12}];
+  let html="";
+  meses.forEach(({ano,mes})=>{
+    const primeiro=new Date(Date.UTC(ano,mes-1,1));
+    const diasNoMes=new Date(Date.UTC(ano,mes,0)).getUTCDate();
+    // só mostra meses/dias dentro do intervalo 31/out–06/dez
+    let cells="";
+    const offset=primeiro.getUTCDay(); // 0=Dom
+    for(let i=0;i<offset;i++) cells+=`<div class="ag-cell vazio"></div>`;
+    for(let dia=1;dia<=diasNoMes;dia++){
+      const iso=`${ano}-${String(mes).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+      const plano=mapa[iso];
+      if(!plano){
+        // fora do intervalo de estudo: célula apagada
+        cells+=`<div class="ag-cell vazio"><span class="dnum" style="color:var(--txt3)">${dia}</span></div>`;
+        continue;
+      }
+      const feito=agendaFeito[iso]?"feito":"";
+      const hoje=iso===hojeIso?"hoje":"";
+      cells+=`<div class="ag-cell t-${plano.tipo} ${feito} ${hoje}" data-iso="${iso}">
+        <span class="dnum">${dia}</span>
+        <span class="dtit">${plano.titulo}</span>
+      </div>`;
+    }
+    // só adiciona o mês se ele tem algum plano
+    const temPlano=CALENDARIO.some(d=>{const [a,m]=d.data.split("-");return +a===ano&&+m===mes;});
+    if(temPlano){
+      html+=`<div class="agenda-mes"><h3>${MES_NOME[mes]}</h3>
+        <div class="agenda-dow">${DOW_LABEL.map(x=>`<span>${x}</span>`).join("")}</div>
+        <div class="agenda-grid">${cells}</div></div>`;
+    }
+  });
+  document.getElementById("agenda-grid").innerHTML=html;
+  document.querySelectorAll("#agenda-grid .ag-cell[data-iso]").forEach(c=>{
+    c.onclick=()=>abrirDiaAgenda(c.dataset.iso);
+  });
+  // abre hoje por padrão (se estiver no intervalo), senão o 1º dia
+  const alvo=mapa[hojeIso]?hojeIso:CALENDARIO[0].data;
+  abrirDiaAgenda(alvo);
+}
+
+function abrirDiaAgenda(iso){
+  const plano=(CALENDARIO||[]).find(d=>d.data===iso); if(!plano) return;
+  const box=document.getElementById("agenda-detalhe");
+  const [a,m,d]=iso.split("-");
+  const dt=new Date(Date.UTC(+a,+m-1,+d));
+  const nomeDia=DOW_LABEL[dt.getUTCDay()];
+  const tipoLabel={estudo:"📘 Dia de estudo",sim:"🎯 Simulado",prova:"🔴 Prova",rev:"🟡 Revisão/correção",leve:"🟣 Revisão leve"}[plano.tipo]||"";
+  const feito=!!agendaFeito[iso];
+  let html=`<h3>${nomeDia}, ${d}/${m} — ${plano.titulo}</h3><div class="sub">${tipoLabel}</div>`;
+  if(plano.manha) html+=`<div class="det-bloco"><div class="lab">☀️ Manhã (+1h30 — você é mais produtiva)</div><p>${plano.manha}</p></div>`;
+  if(plano.tarde) html+=`<div class="det-bloco"><div class="lab">🌙 ${plano.tipo==="sim"||plano.tipo==="prova"?"Tarefa":"Tarde (1h30)"}</div><p>${plano.tarde}</p></div>`;
+  if(plano.questoes && plano.questoes.length){
+    html+=`<div class="det-bloco"><div class="lab">🎯 Questões do banco para hoje (${plano.questoes.length})</div><p>${plano.questoes.map(q=>q.replace("#"," Q")).join(" · ")}</p></div>`;
+  }
+  if(plano.obs) html+=`<div class="det-obs">💡 ${plano.obs}</div>`;
+  html+=`<div class="det-acoes">`;
+  if(plano.materia){
+    html+=`<button class="btn sm" id="ag-abrir-banco">🎯 Abrir essas questões no banco</button>`;
+  }
+  html+=`<button class="btn sm ${feito?'ghost':'verde'}" id="ag-feito">${feito?'↩ Desmarcar':'✓ Marcar como feito'}</button>`;
+  html+=`</div>`;
+  box.innerHTML=html; box.style.display="block";
+  box.scrollIntoView({behavior:"smooth",block:"nearest"});
+  const bAbrir=document.getElementById("ag-abrir-banco");
+  if(bAbrir) bAbrir.onclick=()=>{ if(typeof estudarPonto==="function") estudarPonto(plano.materia, plano.sub||"todos"); };
+  document.getElementById("ag-feito").onclick=()=>{
+    if(agendaFeito[iso]) delete agendaFeito[iso]; else agendaFeito[iso]=true;
+    salvarAgendaFeito(); renderAgenda();
+  };
 }
 
 /* =============================================================================
