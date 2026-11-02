@@ -264,6 +264,24 @@ function renderAgenda(){
   // abre hoje por padrão (se estiver no intervalo), senão o 1º dia
   const alvo=mapa[hojeIso]?hojeIso:CALENDARIO[0].data;
   abrirDiaAgenda(alvo);
+  // trilha de Português e Inglês (priorizada)
+  renderGerais();
+}
+
+function renderGerais(){
+  if(typeof ROTINA_GERAIS==="undefined") return;
+  const introEl=document.getElementById("gerais-intro"); if(introEl) introEl.textContent=ROTINA_GERAIS.intro;
+  const rotEl=document.getElementById("gerais-rotina");
+  if(rotEl) rotEl.innerHTML=`<div class="como"><b>Rotina diária de Gerais (nos ~30-40min de Gerais do dia):</b><ul style="margin:6px 0 0 18px;font-size:.84rem;color:var(--txt2)">${ROTINA_GERAIS.diaria.map(x=>`<li style="margin-bottom:3px">${x}</li>`).join("")}</ul></div>`;
+  const card=item=>{
+    if(item.cortar) return `<div class="insight" style="border-left-color:var(--vermelho);opacity:.9"><b>${item.t} — ❌ pode pular</b><span>${item.d}</span></div>`;
+    const cor=item.prio<=1?"var(--vermelho)":item.prio<=2?"var(--amarelo)":"var(--azul)";
+    const selo=item.prio<=1?"PRIORIDADE ALTA":item.prio<=2?"IMPORTANTE":item.prio<=3?"médio":"se sobrar tempo";
+    return `<div class="insight" style="border-left-color:${cor}"><b>${item.prio}. ${item.t} <span style="font-size:.7rem;color:${cor}">· ${selo}</span></b><span>${item.d}<br><i style="color:var(--txt3)">Como: ${item.como||""}</i></span></div>`;
+  };
+  const ptEl=document.getElementById("gerais-pt"); if(ptEl) ptEl.innerHTML=(typeof TRILHA_PT!=="undefined"?TRILHA_PT:[]).map(card).join("");
+  const enEl=document.getElementById("gerais-en"); if(enEl) enEl.innerHTML=(typeof TRILHA_EN!=="undefined"?TRILHA_EN:[]).map(card).join("");
+  const corteEl=document.getElementById("gerais-corte"); if(corteEl) corteEl.innerHTML=`✂️ <b>Não perca tempo com:</b> ${ROTINA_GERAIS.corte}`;
 }
 
 function abrirDiaAgenda(iso){
