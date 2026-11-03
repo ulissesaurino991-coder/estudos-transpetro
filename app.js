@@ -25,6 +25,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     document.getElementById("topbar-title").textContent=TITULOS[b.dataset.s]||"";
     if(b.dataset.s==="dash") renderHome();
     if(b.dataset.s==="agenda") renderAgenda();
+    if(b.dataset.s==="banco"){ filtroDiaQuestoes=null; filtroDiaRotulo=""; renderFiltrosBanco(); renderBanco(); }
     if(b.dataset.s==="provas") renderProvas();
     if(b.dataset.s==="estrategia") renderEstrategia();
     if(b.dataset.s==="desempenho") renderDesempenho();
@@ -177,6 +178,7 @@ function renderEdital(){
 }
 // Vai para o Banco de Questões já filtrado por matéria + subtópico (estudar por ponto).
 function estudarPonto(materiaKey, subId){
+  filtroDiaQuestoes=null; filtroDiaRotulo=""; // sai do modo "questões do dia" se estiver nele
   if(materiaKey) filtroMateria=materiaKey;
   filtroSub=subId||"todos";
   filtroProva="todas"; filtroTipo="todos";
@@ -332,19 +334,48 @@ function abrirDiaAgenda(iso){
   }
   if(plano.obs) html+=`<div class="det-obs">💡 ${plano.obs}</div>`;
   html+=`<div class="det-acoes">`;
-  if(plano.materia){
-    html+=`<button class="btn sm" id="ag-abrir-banco">🎯 Abrir essas questões no banco</button>`;
+  if(plano.questoes && plano.questoes.length){
+    html+=`<button class="btn sm" id="ag-abrir-dia">🎯 Abrir as ${plano.questoes.length} questões de hoje</button>`;
+  } else if(plano.materia){
+    html+=`<button class="btn sm" id="ag-abrir-banco">🎯 Abrir questões de ${plano.materia} no banco</button>`;
   }
   html+=`<button class="btn sm ${feito?'ghost':'verde'}" id="ag-feito">${feito?'↩ Desmarcar':'✓ Marcar como feito'}</button>`;
   html+=`</div>`;
   box.innerHTML=html; box.style.display="block";
   box.scrollIntoView({behavior:"smooth",block:"nearest"});
+  const bDia=document.getElementById("ag-abrir-dia");
+  if(bDia) bDia.onclick=()=>abrirQuestoesDoDia(plano, `${nomeDia} ${d}/${m} — ${plano.titulo}`);
   const bAbrir=document.getElementById("ag-abrir-banco");
   if(bAbrir) bAbrir.onclick=()=>{ if(typeof estudarPonto==="function") estudarPonto(plano.materia, plano.sub||"todos"); };
   document.getElementById("ag-feito").onclick=()=>{
     if(agendaFeito[iso]) delete agendaFeito[iso]; else agendaFeito[iso]=true;
     salvarAgendaFeito(); renderAgenda();
   };
+}
+
+// Normaliza um id do calendário ("2012#31" ou "tp2023#48") para a chave do banco ("pb2012-31").
+function normalizaIdQuestao(id){
+  let v=id.trim();
+  if(/^\d{4}#/.test(v)) v="pb"+v;        // 2012#31 -> pb2012#31 (PB usa só o ano no calendário)
+  return v.replace("#","-");             // pb2012#31 -> pb2012-31
+}
+
+// Abre o Banco mostrando SÓ as questões listadas no dia do calendário, na ordem.
+function abrirQuestoesDoDia(plano, rotulo){
+  const chaves=(plano.questoes||[]).map(normalizaIdQuestao)
+    .filter(k=>BANCO.some(q=>q.prova+"-"+q.n===k)); // ignora ids que não existem no banco
+  if(!chaves.length){ alert("Este dia não tem questões do banco associadas (use questões NOVAS da plataforma)."); return; }
+  filtroDiaQuestoes=chaves;
+  filtroDiaRotulo=rotulo||"";
+  // vai para a aba Banco
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll("main > section").forEach(x=>x.classList.remove("active"));
+  const navBtn=document.querySelector('#nav button[data-s="banco"]');
+  if(navBtn) navBtn.classList.add("active");
+  document.getElementById("banco").classList.add("active");
+  document.getElementById("topbar-title").textContent=TITULOS.banco;
+  renderFiltrosBanco(); renderBanco();
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
 /* =============================================================================
@@ -436,6 +467,8 @@ function irParaBanco(provaId){
    BANCO DE QUESTÕES (real, interativo)
 ============================================================================= */
 let filtroProva="todas", filtroMateria="todas", filtroTipo="todos", filtroSub="todos";
+let filtroDiaQuestoes=null; // Set de chaves "prova-n" quando vindo do calendário (questões do dia); null = inativo
+let filtroDiaRotulo="";     // rótulo do dia (ex.: "Seg 02/11 — Balanços I")
 function renderFiltrosBanco(){
   if(typeof BANCO==="undefined") return;
   const provasSet=[...new Set(BANCO.filter(q=>!bancaGlobal||q.banca===bancaGlobal).map(q=>q.prova))];
@@ -474,18 +507,28 @@ function renderFiltrosBanco(){
 function renderBanco(){
   if(typeof BANCO==="undefined"){document.getElementById("banco-cont").innerHTML="<p class='sub'>Banco de questões não carregado.</p>";return;}
   const nome={pb2010:"PB 2010",pb2011:"PB 2011",pb2012:"PB 2012",pb2014:"PB 2014",pb2018:"PB 2018",tp2011:"TP 2011",tp2012:"TP 2012",tp2018:"TP 2018",tp2023:"TP 2023"};
-  const lista=BANCO.filter(q=>
-    (!bancaGlobal||q.banca===bancaGlobal) &&
-    (filtroProva==="todas"||q.prova===filtroProva) &&
-    (filtroMateria==="todas"||q.materia===filtroMateria) &&
-    (filtroSub==="todos"||q.sub===filtroSub) &&
-    (filtroTipo==="todos"||q.tipo===filtroTipo));
+  let lista;
+  if(filtroDiaQuestoes){
+    // Modo "questões do dia": mostra exatamente as questões listadas no calendário, na ordem.
+    lista=[...filtroDiaQuestoes].map(k=>BANCO.find(q=>q.prova+"-"+q.n===k)).filter(Boolean);
+  } else {
+    lista=BANCO.filter(q=>
+      (!bancaGlobal||q.banca===bancaGlobal) &&
+      (filtroProva==="todas"||q.prova===filtroProva) &&
+      (filtroMateria==="todas"||q.materia===filtroMateria) &&
+      (filtroSub==="todos"||q.sub===filtroSub) &&
+      (filtroTipo==="todos"||q.tipo===filtroTipo));
+  }
   const anuladas=lista.filter(q=>q.anulada).length;
   const validas=lista.filter(q=>!q.anulada);
   const respN=validas.filter(q=>respostas[q.prova+"-"+q.n]).length;
   const certas=validas.filter(q=>respostas[q.prova+"-"+q.n]&&respostas[q.prova+"-"+q.n].certo).length;
   const subTxt=(filtroSub!=="todos"&&typeof SUBTOPICOS!=="undefined"&&SUBTOPICOS[filtroSub])?` · 📍 <b>${filtroSub}</b> ${SUBTOPICOS[filtroSub].t}`:"";
-  document.getElementById("banco-sub").innerHTML=`${lista.length} questões${anuladas?` (<b>${anuladas}</b> anulada${anuladas>1?'s':''})`:''} · você respondeu <b>${respN}</b> (${certas} certas)${subTxt}. Clique na alternativa para responder; o gabarito aparece em seguida.`;
+  if(filtroDiaQuestoes){
+    document.getElementById("banco-sub").innerHTML=`<div class="dia-banner">🗓️ <b>Questões de hoje${filtroDiaRotulo?` — ${filtroDiaRotulo}`:""}</b> · ${lista.length} questões · ${respN} respondidas (${certas} certas) <button class="btn sm ghost" id="limpar-dia" style="margin-left:8px">✕ ver todas as questões</button></div>`;
+  } else {
+    document.getElementById("banco-sub").innerHTML=`${lista.length} questões${anuladas?` (<b>${anuladas}</b> anulada${anuladas>1?'s':''})`:''} · você respondeu <b>${respN}</b> (${certas} certas)${subTxt}. Clique na alternativa para responder; o gabarito aparece em seguida.`;
+  }
   const cont=document.getElementById("banco-cont");
   if(!lista.length){cont.innerHTML="<p class='sub'>Nenhuma questão com esse filtro.</p>";return;}
   cont.innerHTML=lista.map(q=>{
@@ -522,6 +565,18 @@ function renderBanco(){
     if(q.anulada) return; // anulada não é respondível
     respostas[key]={letra,certo:letra===q.gab}; save(LS_RESP,respostas);
     renderBanco(); renderHome();
+  });
+  // botão "ver todas" sai do modo questões-do-dia
+  const bLimpar=document.getElementById("limpar-dia");
+  if(bLimpar) bLimpar.onclick=()=>{ filtroDiaQuestoes=null; filtroDiaRotulo=""; mostrarFiltrosBanco(true); renderFiltrosBanco(); renderBanco(); };
+  // esconde/mostra as barras de filtro conforme o modo
+  mostrarFiltrosBanco(!filtroDiaQuestoes);
+}
+
+// mostra ou esconde as barras de filtro do banco (escondidas no modo "questões do dia")
+function mostrarFiltrosBanco(mostrar){
+  ["filtros-prova","filtros-materia","filtros-subtopico","filtros-tipo"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display=mostrar?"":"none";
   });
 }
 
