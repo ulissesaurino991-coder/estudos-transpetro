@@ -55,6 +55,15 @@
   .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}.mcard .big.vermelho{color:var(--vermelho)}
   .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
 
+  /* PROGRESSO do calendário */
+  .prog-wrap{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px 18px;margin-bottom:18px}
+  .prog-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .prog-dias{font-size:.84rem;color:var(--txt2)}
+  .prog-bar{position:relative;height:14px;background:var(--bg);border-radius:8px;overflow:hidden}
+  .prog-fill{height:100%;background:linear-gradient(90deg,var(--verde),#4ade80);border-radius:8px;transition:width .5s}
+  .prog-hoje{position:absolute;top:-3px;width:2px;height:20px;background:var(--azul);opacity:.7}
+  .prog-status{font-size:.86rem;font-weight:600;margin-top:9px}
+
   /* CALENDÁRIO estilo agenda */
   .agenda-mes{margin-bottom:22px}
   .agenda-mes h3{font-size:1rem;margin-bottom:10px;color:var(--txt)}
@@ -332,6 +341,7 @@
     <section id="agenda">
       <h2>🗓️ Calendário de Estudos</h2>
       <p class="sub">Clique em um dia para ver o plano fechado. Faça SÓ o que estiver ali. 🟦 estudo · 🟩 simulado/prova · 🟨 revisão leve. Os dias com ✓ você já concluiu (clique em "marcar como feito").</p>
+      <div id="agenda-progresso"></div>
       <div id="agenda-grid"></div>
       <div id="agenda-detalhe" class="agenda-det" style="display:none"></div>
 
@@ -454,15 +464,15 @@
   </main>
 </div>
 
-<script src="dados-edital.js?v=10"></script>
-<script src="dados-estrategia.js?v=10"></script>
-<script src="dados-provas.js?v=10"></script>
-<script src="dados-cronograma.js?v=10"></script>
-<script src="dados-calendario.js?v=10"></script>
-<script src="dados-gerais.js?v=10"></script>
-<script src="dados-questoes.js?v=10"></script>
-<script src="dados-simulados.js?v=10"></script>
-<script src="dados-tatica-prova.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="dados-edital.js?v=11"></script>
+<script src="dados-estrategia.js?v=11"></script>
+<script src="dados-provas.js?v=11"></script>
+<script src="dados-cronograma.js?v=11"></script>
+<script src="dados-calendario.js?v=11"></script>
+<script src="dados-gerais.js?v=11"></script>
+<script src="dados-questoes.js?v=11"></script>
+<script src="dados-simulados.js?v=11"></script>
+<script src="dados-tatica-prova.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

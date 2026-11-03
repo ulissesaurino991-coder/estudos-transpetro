@@ -27,6 +27,13 @@
 ============================================================================= */
 
 const CALENDARIO = [
+  // ===== PRÉ-ARRANQUE (30/out) — recupera o atraso sem comprimir a reta final =====
+  { data:"2026-10-30", tipo:"estudo", titulo:"Arranque: correção + Balanços", materia:"balancos",
+    manha:"Corrija o simulado de sábado (marque acertos/erros em Meu Desempenho, jogue os erros no Caderno de Erros).",
+    tarde:"BANCO — Balanços: comece a resolver bastante questão (bloco 1 de Balanços, abaixo). Use o caderno CADERNO-SEMANA1-BALANCOS.md.",
+    questoes:["2018#21","2018#22","2018#23","2018#24","2018#25","2018#26","2018#27","2018#28"],
+    obs:"Dia de recuperação do atraso. Tranquila: o plano foi re-ancorado em hoje e NADA pesado caiu na reta final. Você NÃO está atrasada no que importa." },
+
   // ===== SEMANA 1 (31/out – 06/nov) — Balanços + arrancada =====
   { data:"2026-10-31", tipo:"sim", titulo:"🎯 Simulado TP 2011",
     tarde:"SIMULADO 1 cronometrado (4h30): Transpetro 2011 completa — 10 Port + 10 Inglês + 50 específicas. Já treine o MÉTODO DAS VOLTAS (veja aba Tática de Prova). Sem energético ainda — isole o método.",
@@ -34,10 +41,10 @@ const CALENDARIO = [
   { data:"2026-11-01", tipo:"rev", titulo:"Correção Simulado 1",
     manha:"Correção do Simulado 1: marque acerto/erro na aba Meu Desempenho. Jogue TODO erro no Caderno de Erros.",
     tarde:"Releia os 3 tópicos mais fracos do simulado. 1 texto de Inglês + 10 questões de Português (gramática)." },
-  { data:"2026-11-02", tipo:"estudo", titulo:"Balanços I", materia:"balancos",
+  { data:"2026-11-02", tipo:"estudo", titulo:"Balanços I — composição", materia:"balancos",
     manha:"NOVAS (plataforma paga): 15-20 questões de Balanços de massa. + Caderno de Erros (cards que vencem hoje) + 3 questões de gramática.",
-    tarde:"BANCO — Balanços (bloco 1): frações, densidade, reagente limitante/excesso, combustão.",
-    questoes:["2018#21","2018#22","2018#23","2018#24","2018#25","2018#26","2018#27","2018#28"] },
+    tarde:"BANCO — Balanços (composição pb-1/pb-2): frações molar/mássica, densidade, CNTP.",
+    questoes:["2012#31","2012#33","2014#21","2014#27","2011#22","2018#21","2018#22"] },
   { data:"2026-11-03", tipo:"estudo", titulo:"Balanços II", materia:"balancos",
     manha:"NOVAS: 15-20 questões de Balanços com reciclo/purga. + Caderno de Erros + 3 de gramática.",
     tarde:"BANCO — Balanços (bloco 2): reciclo, by-pass, conversão global×por passe, umidade.",

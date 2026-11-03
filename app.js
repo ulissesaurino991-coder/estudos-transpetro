@@ -219,11 +219,43 @@ function salvarAgendaFeito(){ localStorage.setItem(LS_AGENDA,JSON.stringify(agen
 const MES_NOME={10:"Outubro 2026",11:"Novembro 2026",12:"Dezembro 2026"};
 const DOW_LABEL=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
+function renderAgendaProgresso(hojeIso){
+  const box=document.getElementById("agenda-progresso"); if(!box) return;
+  // só contam dias com plano de ESTUDO/revisão/simulado (o dia da prova não conta como tarefa)
+  const diasPlano=CALENDARIO.filter(d=>d.tipo!=="prova");
+  const total=diasPlano.length;
+  const feitosTotal=diasPlano.filter(d=>agendaFeito[d.data]).length;
+  // dias que já "venceram" (data <= hoje) — o que DEVERIA estar feito até agora
+  const vencidos=diasPlano.filter(d=>d.data<=hojeIso);
+  const feitosVencidos=vencidos.filter(d=>agendaFeito[d.data]).length;
+  const pct=total?Math.round(feitosTotal/total*100):0;
+  // status: comparar feitos com o esperado (vencidos)
+  const saldo=feitosTotal - vencidos.length; // >0 adiantada, <0 atrasada (em nº de dias de tarefa)
+  let status, cor, emoji;
+  if(saldo>=1){ status=`Adiantada! ${saldo} dia(s) à frente do plano`; cor="var(--verde)"; emoji="🚀"; }
+  else if(saldo===0){ status="Em dia — exatamente no ritmo do plano"; cor="var(--azul)"; emoji="✅"; }
+  else if(saldo>=-2){ status=`Levíssimo atraso (${-saldo} dia) — fácil de recuperar hoje`; cor="var(--amarelo)"; emoji="🟡"; }
+  else { status=`${-saldo} dias atrás do plano — vamos recuperar sem pânico`; cor="var(--vermelho)"; emoji="⚠️"; }
+  // dias restantes até a prova
+  const prova=new Date("2026-12-06T00:00:00"); const hj=new Date(hojeIso+"T00:00:00");
+  const diasRestantes=Math.max(0,Math.round((prova-hj)/864e5));
+  box.innerHTML=`
+    <div class="prog-wrap">
+      <div class="prog-top">
+        <div><b style="font-size:1.05rem">${emoji} ${feitosTotal}/${total} dias concluídos</b> <span class="sub">· ${pct}% do plano</span></div>
+        <div class="prog-dias">faltam <b>${diasRestantes}</b> dias p/ a prova</div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div><div class="prog-hoje" style="left:${total?Math.round(vencidos.length/total*100):0}%" title="onde você deveria estar hoje"></div></div>
+      <div class="prog-status" style="color:${cor}">${status}</div>
+    </div>`;
+}
+
 function renderAgenda(){
   if(typeof CALENDARIO==="undefined"){ document.getElementById("agenda-grid").innerHTML="<p class='sub'>Calendário não carregado.</p>"; return; }
   // mapa rápido iso->dia
   const mapa={}; CALENDARIO.forEach(d=>mapa[d.data]=d);
   const hojeIso=(function(){const n=new Date();n.setHours(0,0,0,0);return n.toISOString().slice(0,10);})();
+  renderAgendaProgresso(hojeIso);
   // meses a renderizar: out(só 31), nov inteiro, dez(1-6)
   const meses=[{ano:2026,mes:10},{ano:2026,mes:11},{ano:2026,mes:12}];
   let html="";
