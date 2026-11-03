@@ -27,13 +27,6 @@
 ============================================================================= */
 
 const CALENDARIO = [
-  // ===== PRÉ-ARRANQUE (30/out) — recupera o atraso sem comprimir a reta final =====
-  { data:"2026-10-30", tipo:"estudo", titulo:"Arranque: correção + Balanços", materia:"balancos",
-    manha:"Corrija o simulado de sábado (marque acertos/erros em Meu Desempenho, jogue os erros no Caderno de Erros).",
-    tarde:"BANCO — Balanços: comece a resolver bastante questão (bloco 1 de Balanços, abaixo). Use o caderno CADERNO-SEMANA1-BALANCOS.md.",
-    questoes:["2018#21","2018#22","2018#23","2018#24","2018#25","2018#26","2018#27","2018#28"],
-    obs:"Dia de recuperação do atraso. Tranquila: o plano foi re-ancorado em hoje e NADA pesado caiu na reta final. Você NÃO está atrasada no que importa." },
-
   // ===== SEMANA 1 (31/out – 06/nov) — Balanços + arrancada =====
   { data:"2026-10-31", tipo:"sim", titulo:"🎯 Simulado TP 2011",
     tarde:"SIMULADO 1 cronometrado (4h30): Transpetro 2011 completa — 10 Port + 10 Inglês + 50 específicas. Já treine o MÉTODO DAS VOLTAS (veja aba Tática de Prova). Sem energético ainda — isole o método.",
@@ -46,9 +39,10 @@ const CALENDARIO = [
     tarde:"BANCO — Balanços (composição pb-1/pb-2): frações molar/mássica, densidade, CNTP.",
     questoes:["2012#31","2012#33","2014#21","2014#27","2011#22","2018#21","2018#22"] },
   { data:"2026-11-03", tipo:"estudo", titulo:"Balanços II", materia:"balancos",
-    manha:"NOVAS: 15-20 questões de Balanços com reciclo/purga. + Caderno de Erros + 3 de gramática.",
-    tarde:"BANCO — Balanços (bloco 2): reciclo, by-pass, conversão global×por passe, umidade.",
-    questoes:["2011#21","2011#22","2011#23","2011#24","2011#25","2011#26","2011#28","2011#29"] },
+    manha:"Se ainda não corrigiu o simulado de sábado, faça isso primeiro (Meu Desempenho + Caderno de Erros). Depois: NOVAS — 15-20 questões de Balanços.",
+    tarde:"BANCO — Balanços (bloco 2): reciclo, by-pass, conversão global×por passe, umidade. Resolva BASTANTE questão de balanço hoje, como você quer.",
+    questoes:["2011#21","2011#22","2011#23","2011#24","2011#25","2011#26","2011#28","2011#29"],
+    obs:"Se você ainda está pegando o ritmo da Semana 1, tudo bem: a barra de progresso no topo te mostra se está em dia. Balanços é a base — vale investir hoje." },
   { data:"2026-11-04", tipo:"estudo", titulo:"Balanços III", materia:"balancos",
     manha:"NOVAS: 15-20 questões de Balanços. + Caderno de Erros + 3 de gramática.",
     tarde:"BANCO — Balanços (bloco 3): fechar a matéria (2012 + 2014).",
