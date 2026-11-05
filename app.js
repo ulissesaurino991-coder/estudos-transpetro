@@ -333,16 +333,35 @@ function renderHome(){
   // provas
   const pe=carregarProvas();
   const feitas=PROVAS.filter(p=>pe[p.id].status==="resolvido").length;
-  // questões respondidas
-  const respN=Object.keys(respostas).length;
-  const respCertas=Object.values(respostas).filter(r=>r.certo).length;
+
+  // questões: fonte da verdade = Painel de Execução (painelReg) se existir; senão respostas antigas
+  let respN, respCertas, totalBanco;
+  if(typeof painelReg!=="undefined" && typeof PAINEL_CONFIG!=="undefined"){
+    const regs=Object.values(painelReg).filter(r=>r.resp!==undefined);
+    respN=regs.length;
+    respCertas=regs.filter(r=>r.correta).length;
+    totalBanco=PAINEL_CONFIG.bancoTotal;
+  } else {
+    respN=Object.keys(respostas).length;
+    respCertas=Object.values(respostas).filter(r=>r.certo).length;
+    totalBanco=typeof BANCO!=="undefined"?BANCO.length:470;
+  }
   const desemp=respN?Math.round(respCertas/respN*100):null;
-  const totalQ=typeof BANCO!=="undefined"?BANCO.filter(q=>!bancaGlobal||q.banca===bancaGlobal).length:0;
+
+  // domínio por modelo (do painel): quantos modelos dominados/fortes vs fracos
+  let modStats=null;
+  if(typeof MODELOS!=="undefined" && typeof dominioModelo==="function"){
+    modStats={dominado:0,forte:0,intermediario:0,fraco:0,naoVisto:0,totalVistos:0};
+    Object.keys(MODELOS).forEach(ak=>MODELOS[ak].modelos.forEach(mo=>{
+      const nv=dominioModelo(mo.id).nivel; modStats[nv]++; if(nv!=="naoVisto") modStats.totalVistos++;
+    }));
+  }
 
   document.getElementById("home-cards").innerHTML=`
-    <div class="mcard"><div class="cap">🎯 Questões das provas</div><div class="big verde">${respN}/${totalQ}</div><div class="note">${respCertas} acertos · ${respN-respCertas} erros</div></div>
-    <div class="mcard"><div class="cap">📈 Desempenho geral</div><div class="big azul">${desemp!==null?desemp+"%":"—"}</div><div class="note">${respN?"nas questões respondidas":"nenhuma questão respondida"}</div></div>
-    <div class="mcard"><div class="cap">📋 Cobertura do edital</div><div class="big amarelo">${cob}%</div><div class="note">${dom} dominados · ${rev} revisando · ${nao} não vi</div></div>
+    <div class="mcard"><div class="cap">🎯 Questões resolvidas</div><div class="big verde">${respN}/${totalBanco}</div><div class="note">${respCertas} acertos · ${respN-respCertas} erros</div></div>
+    <div class="mcard"><div class="cap">📈 Desempenho geral</div><div class="big azul">${desemp!==null?desemp+"%":"—"}</div><div class="note">${respN?"nas questões registradas":"nenhuma questão registrada"}</div></div>
+    ${modStats?`<div class="mcard"><div class="cap">🗺️ Domínio por modelo</div><div class="big amarelo">${modStats.dominado+modStats.forte}🟢 · ${modStats.fraco}🔴</div><div class="note">${modStats.totalVistos} modelos vistos · ${modStats.intermediario} intermediários</div></div>`
+    :`<div class="mcard"><div class="cap">📋 Cobertura do edital</div><div class="big amarelo">${cob}%</div><div class="note">${dom} dominados · ${rev} revisando · ${nao} não vi</div></div>`}
     <div class="mcard"><div class="cap">🔁 Provas refeitas</div><div class="big verde">${feitas}/9</div><div class="note">${9-feitas} ainda não resolvidas</div></div>`;
 
   // barras por matéria (cobertura)
