@@ -13,7 +13,260 @@ let progresso=load(LS_KEY);
 let respostas=load(LS_RESP);
 
 const LS_ERROS="transpetro_eq_erros_v1"; // caderno de erros (Leitner + repetição espaçada)
-const TITULOS={dash:"Home",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",agenda:"Calendário de Estudos",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
+const LS_PAINEL="transpetro_eq_painel_v1"; // registros ricos por questão (resposta, confiança, tempo, motivo...)
+
+/* =============================================================================
+   PAINEL DE EXECUÇÃO — motor de dados (registro rico, domínio por modelo, meta dinâmica)
+============================================================================= */
+// registros[ref] = { resp,gab,correta,confianca,tempoSeg,motivoErro,obs,status,modelo,jaVista,data }
+let painelReg = JSON.parse(localStorage.getItem(LS_PAINEL)||"null");
+if(!painelReg){
+  // semeia com o diagnóstico de Balanços (28 questões) na primeira carga
+  painelReg={};
+  if(typeof DIAG_BALANCOS!=="undefined"){
+    DIAG_BALANCOS.forEach(d=>{ painelReg[d.ref]={...d.reg, modelo:d.modelo, qdiag:d.q, data:"2026-11-05"}; });
+  }
+  localStorage.setItem(LS_PAINEL, JSON.stringify(painelReg));
+}
+function salvarPainel(){ localStorage.setItem(LS_PAINEL, JSON.stringify(painelReg)); }
+
+// Registra/atualiza uma questão e recalcula tudo. (usado pelo formulário e pela regra do Kiro)
+function registrarQuestao(ref, dados){
+  const existente=painelReg[ref]||{};
+  painelReg[ref]={...existente, ...dados, data:dados.data||hojeISO()};
+  salvarPainel();
+}
+
+// Calcula o nível de domínio de um MODELO a partir dos registros das suas questões.
+// Considera: % acerto, confiança, tempo, repetição, e se acertou só por já ter visto.
+// Retorna: {nivel, feitas, certas, confMedia, tempoMedio, acertosSeguidos, cor, label}
+function dominioModelo(modeloId){
+  const regs=Object.values(painelReg).filter(r=>r.modelo===modeloId && r.resp!==undefined);
+  const feitas=regs.length;
+  if(!feitas) return {nivel:"naoVisto",feitas:0,certas:0,confMedia:null,tempoMedio:null,cor:"#94a3b8",label:"não visto"};
+  const certas=regs.filter(r=>r.correta).length;
+  const pct=certas/feitas;
+  const confs=regs.map(r=>r.confianca).filter(c=>c!=null);
+  const confMedia=confs.length?confs.reduce((a,b)=>a+b,0)/confs.length:null;
+  const tempos=regs.map(r=>r.tempoSeg).filter(t=>t>0);
+  const tempoMedio=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):null;
+  // "domínio frágil": acertou mas com baixa confiança OU só porque já tinha visto OU tempo alto
+  const temFragil=regs.some(r=>r.correta && (r.confianca<=1 || r.jaVista || (r.tempoSeg>0 && r.tempoSeg>300)));
+  const temErro=regs.some(r=>!r.correta);
+  const temErroConceitual=regs.some(r=>!r.correta && r.motivoErro==="conteúdo");
+  // nível
+  let nivel;
+  if(pct<0.75 || temErroConceitual) nivel="fraco";
+  else if(temErro || temFragil || (confMedia!=null && confMedia<2)) nivel = (pct>=0.75 && confMedia>=1.5) ? "intermediario" : "fraco";
+  else if(feitas>=3 && pct>=0.9 && confMedia>=2.3 && (!tempoMedio||tempoMedio<=240)) nivel="dominado";
+  else nivel="forte";
+  // regra: nunca "dominado" sem ≥3 questões e 2 acertos consecutivos seguros
+  if(nivel==="dominado"){
+    const seguros=regs.filter(r=>r.correta && r.confianca>=2 && !r.jaVista);
+    if(feitas<3 || seguros.length<2) nivel="forte";
+  }
+  const meta={naoVisto:{cor:"#94a3b8",label:"não visto"},fraco:{cor:"#dc2626",label:"🔴 fraco / reforço"},intermediario:{cor:"#ca8a04",label:"🟠 intermediário"},forte:{cor:"#16a34a",label:"🟢 forte"},dominado:{cor:"#15803d",label:"🟢 dominado"}}[nivel];
+  return {nivel,feitas,certas,confMedia,tempoMedio,cor:meta.cor,label:meta.label};
+}
+
+// ---- META DINÂMICA ----
+function diasNormaisRestantes(hoje){
+  // conta dias de hoje+1? não: conta de hoje até dataAlvo (inclusive), excluindo sábados e indisponíveis
+  if(typeof PAINEL_CONFIG==="undefined") return 1;
+  const cfg=PAINEL_CONFIG;
+  let d=new Date(hoje+"T00:00:00"); const fim=new Date(cfg.dataAlvoBanco+"T00:00:00");
+  let n=0;
+  while(d<=fim){
+    const iso=d.toISOString().slice(0,10); const g=d.getDay();
+    const ehSab=g===6; const indisp=cfg.indisponiveis.includes(iso);
+    if(!(cfg.excluiSabado&&ehSab) && !indisp) n++;
+    d=new Date(d.getTime()+864e5);
+  }
+  return Math.max(1,n);
+}
+// nº de questões antigas já feitas (registradas com resposta), excluindo PB2010
+function questoesAntigasFeitas(){
+  return Object.keys(painelReg).filter(ref=>painelReg[ref].resp!==undefined && !ref.startsWith("pb2010")).length;
+}
+function metaDinamica(hoje){
+  const cfg=PAINEL_CONFIG;
+  const feitas=questoesAntigasFeitas();
+  const restantes=Math.max(0,cfg.bancoTotal-feitas);
+  const dias=diasNormaisRestantes(hoje);
+  const metaDia=restantes>0?restantes/dias:0;
+  // feitas hoje
+  const feitasHoje=Object.values(painelReg).filter(r=>r.resp!==undefined && r.data===hoje).length;
+  return { feitas, restantes, dias, metaDia, metaDiaArred:Math.ceil(metaDia), feitasHoje,
+           faltamHoje:Math.max(0,Math.ceil(metaDia)-feitasHoje), pctTotal:Math.round(feitas/cfg.bancoTotal*100) };
+}
+
+// média real dos últimos N dias (para previsão de conclusão)
+function mediaUltimosDias(n){
+  const porDia={};
+  Object.values(painelReg).forEach(r=>{ if(r.resp!==undefined&&r.data) porDia[r.data]=(porDia[r.data]||0)+1; });
+  const dias=Object.keys(porDia).sort().slice(-n);
+  if(!dias.length) return 0;
+  const soma=dias.reduce((a,d)=>a+porDia[d],0);
+  return soma/dias.length;
+}
+
+function renderPainel(){
+  if(typeof PAINEL_CONFIG==="undefined"){ document.getElementById("painel-hoje").innerHTML="<p class='sub'>Painel não carregado.</p>"; return; }
+  const hoje=hojeISO();
+  const m=metaDinamica(hoje);
+  // ---- cards de HOJE ----
+  document.getElementById("painel-hoje").innerHTML=`
+    <div class="mcard"><div class="cap">🎯 Meta mínima de hoje</div><div class="big azul">${m.metaDiaArred}</div><div class="note">questões antigas</div></div>
+    <div class="mcard"><div class="cap">✅ Feitas hoje</div><div class="big verde">${m.feitasHoje}</div><div class="note">${m.faltamHoje>0?`faltam ${m.faltamHoje} p/ a meta`:"meta de hoje batida! 🎉"}</div></div>
+    <div class="mcard"><div class="cap">📚 Banco antigo</div><div class="big amarelo">${m.feitas}/${PAINEL_CONFIG.bancoTotal}</div><div class="note">${m.restantes} restantes · ${m.pctTotal}%</div></div>
+    <div class="mcard"><div class="cap">📅 Dias normais restantes</div><div class="big azul">${m.dias}</div><div class="note">até 30/11 (exclui sábados)</div></div>`;
+
+  // ---- ritmo & previsão ----
+  const media3=mediaUltimosDias(3);
+  // previsão: hoje + ceil(restantes/mediaReal) dias normais
+  let previsao="—";
+  if(media3>0 && m.restantes>0){
+    let d=new Date(hoje+"T00:00:00"), rest=m.restantes;
+    while(rest>0){ d=new Date(d.getTime()+864e5); if(d.getDay()!==6 && !PAINEL_CONFIG.indisponiveis.includes(d.toISOString().slice(0,10))) rest-=media3; }
+    previsao=d.toISOString().slice(0,10).split("-").reverse().slice(0,2).join("/");
+  } else if(m.restantes===0){ previsao="banco concluído! 🎉"; }
+  // mensagem "se fizer +3 hoje"
+  const metaSeMais3=m.restantes>3?((m.restantes-(m.feitasHoje+3))/Math.max(1,m.dias-1)):0;
+  const metaAtualFutura=m.restantes>0?((m.restantes-m.feitasHoje)/Math.max(1,m.dias)):0;
+  document.getElementById("painel-ritmo").innerHTML=`
+    <table class="evo"><tr><th style="text-align:left">Indicador</th><th>Valor</th></tr>
+    <tr style="border-top:1px solid var(--borda)"><td class="nm">Média necessária por dia</td><td style="text-align:center"><b>${m.metaDia.toFixed(1)}</b></td></tr>
+    <tr style="border-top:1px solid var(--borda)"><td class="nm">Média real (últimos 3 dias)</td><td style="text-align:center">${media3?media3.toFixed(1):"—"}</td></tr>
+    <tr style="border-top:1px solid var(--borda)"><td class="nm">Previsão de conclusão (ritmo atual)</td><td style="text-align:center"><b>${previsao}</b></td></tr>
+    <tr style="border-top:1px solid var(--borda)"><td class="nm">% total concluído</td><td style="text-align:center">${m.pctTotal}%</td></tr>
+    </table>
+    <div class="como" style="margin-top:10px"><b>💡 Motivação numérica:</b> ${m.restantes>3?`Se você fizer <b>+3</b> questões hoje, sua média mínima dos próximos dias cai de <b>${metaAtualFutura.toFixed(1)}</b> para <b>${metaSeMais3.toFixed(1)}</b>/dia.`:"Você está praticamente fechando o banco — reta final!"}</div>`;
+
+  // ---- prioridade do momento ----
+  renderPainelPrioridade();
+  // ---- mapa de domínio Balanços ----
+  renderPainelModelos("balancos","painel-modelos-balancos");
+  // ---- cobertura geral ----
+  renderPainelCobertura();
+  // ---- formulário ----
+  renderPainelForm();
+  // ---- fila de revisão guiada ----
+  renderPainelRevisao();
+}
+
+function renderPainelPrioridade(){
+  // ranqueia modelos fracos/reforço de Balanços por prioridade
+  const box=document.getElementById("painel-prioridade"); if(!box) return;
+  const mods=MODELOS.balancos.modelos.map(mo=>({...mo, dom:dominioModelo(mo.id)}))
+    .filter(x=>x.dom.feitas>0 && (x.dom.nivel==="fraco"||x.dom.nivel==="intermediario"));
+  const ordem={fraco:0,intermediario:1};
+  mods.sort((a,b)=>ordem[a.dom.nivel]-ordem[b.dom.nivel]);
+  if(!mods.length){ box.innerHTML="<p class='sub'>Nenhuma prioridade crítica no momento. 🎉</p>"; return; }
+  box.innerHTML=mods.slice(0,6).map(x=>{
+    const regra=(typeof REGRAS_MODELO!=="undefined"&&REGRAS_MODELO[x.id])?`<br><i style="color:var(--txt3);font-size:.8rem">${REGRAS_MODELO[x.id]}</i>`:"";
+    return `<div class="lacuna ${x.dom.nivel==='fraco'?'grave':''}">
+      <div class="lac-info"><b style="color:${x.dom.cor}">${x.dom.nivel==='fraco'?'🔴':'🟠'} ${x.nome}</b> <span class="sub">— ${x.dom.certas}/${x.dom.feitas} certas${x.dom.confMedia!=null?`, conf. ${["zero","baixa","média","alta"][Math.round(x.dom.confMedia)]}`:""}${x.dom.tempoMedio?`, ${Math.floor(x.dom.tempoMedio/60)}:${String(x.dom.tempoMedio%60).padStart(2,"0")}`:""}</span>${regra}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderPainelModelos(areaKey, elId){
+  const box=document.getElementById(elId); if(!box||!MODELOS[areaKey]) return;
+  const mods=MODELOS[areaKey].modelos;
+  box.innerHTML=`<table class="evo" style="min-width:auto"><tr><th style="text-align:left">Modelo</th><th>Feitas</th><th>Certas</th><th>Confiança</th><th>Tempo méd.</th><th>Domínio</th></tr>`+
+    mods.map(mo=>{
+      const d=dominioModelo(mo.id);
+      const conf=d.confMedia!=null?["zero","baixa","média","alta"][Math.round(d.confMedia)]:"—";
+      const tm=d.tempoMedio?`${Math.floor(d.tempoMedio/60)}:${String(d.tempoMedio%60).padStart(2,"0")}`:"—";
+      return `<tr style="border-top:1px solid var(--borda)"><td class="nm" style="font-size:.8rem">${mo.nome}${mo.submodelo?' <span class="sub">(submodelo)</span>':''}</td><td style="text-align:center">${d.feitas||"–"}</td><td style="text-align:center">${d.feitas?d.certas:"–"}</td><td style="text-align:center;font-size:.78rem">${conf}</td><td style="text-align:center;font-size:.78rem">${tm}</td><td style="text-align:center;color:${d.cor};font-weight:700;font-size:.76rem">${d.label}</td></tr>`;
+    }).join("")+`</table>`;
+}
+
+function renderPainelCobertura(){
+  const box=document.getElementById("painel-cobertura"); if(!box) return;
+  box.innerHTML=Object.keys(MODELOS).sort((a,b)=>MODELOS[a].ordem-MODELOS[b].ordem).map(areaKey=>{
+    const mods=MODELOS[areaKey].modelos;
+    const niveis={naoVisto:0,fraco:0,intermediario:0,forte:0,dominado:0};
+    mods.forEach(mo=>niveis[dominioModelo(mo.id).nivel]++);
+    const total=mods.length, vistos=total-niveis.naoVisto;
+    const pct=Math.round(vistos/total*100);
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:.88rem"><b>${MODELOS[areaKey].nome}</b><span class="sub">${vistos}/${total} modelos vistos (${pct}%)</span></div>
+      <div class="prog-bar" style="margin-top:6px"><div class="prog-fill" style="width:${pct}%"></div></div>
+      <div class="sub" style="margin-top:4px;font-size:.78rem">🟢 ${niveis.dominado} dominados · 🟢 ${niveis.forte} fortes · 🟠 ${niveis.intermediario} intermediários · 🔴 ${niveis.fraco} fracos · ⚪ ${niveis.naoVisto} não vistos</div>
+    </div>`;
+  }).join("")+`<div class="como"><b>🎯 Meta-chave:</b> 100% dos modelos VISTOS antes da revisão final (01/12). Não chegar em dezembro com modelo nunca visto.</div>`;
+}
+
+function renderPainelRevisao(){
+  const box=document.getElementById("painel-revisao"); if(!box||typeof REVISAO_GUIADA_BALANCOS==="undefined") return;
+  box.innerHTML=`<p class="sub" style="margin-top:0">Ordem recomendada para fechar as fraquezas de Balanços antes de avançar:</p>`+
+    REVISAO_GUIADA_BALANCOS.map((r,i)=>{
+      const reg=painelReg[r.ref]||{};
+      const feito=reg.data && reg.data!=="2026-11-05"; // refeita após o diagnóstico
+      const existeBanco=typeof BANCO!=="undefined" && BANCO.some(q=>q.prova+"-"+q.n===r.ref);
+      const [pr,nn]=r.ref.split("-");
+      return `<div class="lacuna ${feito?'':'grave'}">
+        <div class="lac-info"><span class="lac-n">${i+1}</span> <b>${pr.toUpperCase()} Q${nn}</b> — ${r.obj}</div>
+        ${existeBanco?`<button class="btn sm" data-ref="${r.ref}">abrir →</button>`:'<span class="tag anulada-tag" title="Prova 2006 não está no banco">sem enunciado</span>'}
+      </div>`;
+    }).join("");
+  box.querySelectorAll("button[data-ref]").forEach(b=>b.onclick=()=>{
+    const ref=b.dataset.ref;
+    filtroDiaQuestoes=[ref]; filtroDiaRotulo="Revisão guiada";
+    document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll("main > section").forEach(x=>x.classList.remove("active"));
+    const nb=document.querySelector('#nav button[data-s="banco"]'); if(nb) nb.classList.add("active");
+    document.getElementById("banco").classList.add("active");
+    document.getElementById("topbar-title").textContent=TITULOS.banco;
+    renderFiltrosBanco(); renderBanco(); window.scrollTo({top:0,behavior:"smooth"});
+  });
+}
+
+function renderPainelForm(){
+  const box=document.getElementById("painel-form"); if(!box) return;
+  box.innerHTML=`
+    <div class="pform">
+      <label>Questão <input id="pf-ref" placeholder="ex: tp2011-45" style="width:120px"></label>
+      <label>Resposta <input id="pf-resp" maxlength="1" placeholder="C" style="width:46px;text-transform:uppercase"></label>
+      <label>Gabarito <input id="pf-gab" maxlength="1" placeholder="C" style="width:46px;text-transform:uppercase"></label>
+      <label>Confiança
+        <select id="pf-conf"><option value="3">alta</option><option value="2">média</option><option value="1">baixa</option><option value="0">nenhuma</option></select>
+      </label>
+      <label>Tempo <input id="pf-tempo" placeholder="3:10" style="width:60px"></label>
+      <label>Motivo do erro
+        <select id="pf-motivo"><option value="">— (acertei)</option><option>conteúdo</option><option>não reconheceu o modelo</option><option>interpretação</option><option>estequiometria</option><option>conta</option><option>pressa</option><option>fórmula</option><option>chute</option><option>outro</option></select>
+      </label>
+      <label style="flex:1 1 100%">Observação <input id="pf-obs" placeholder="opcional" style="width:100%"></label>
+      <button class="btn sm verde" id="pf-salvar">Registrar e recalcular</button>
+    </div>
+    <div id="pf-msg" class="sub" style="margin-top:8px"></div>`;
+  document.getElementById("pf-salvar").onclick=()=>{
+    const ref=(document.getElementById("pf-ref").value||"").trim().toLowerCase();
+    if(!ref){ document.getElementById("pf-msg").textContent="Informe a questão (ex: tp2011-45)."; return; }
+    const resp=(document.getElementById("pf-resp").value||"").trim().toUpperCase();
+    const gab=(document.getElementById("pf-gab").value||"").trim().toUpperCase();
+    const conf=parseInt(document.getElementById("pf-conf").value,10);
+    const tempoStr=(document.getElementById("pf-tempo").value||"").trim();
+    const tempoSeg=tempoStr?(tempoStr.includes(":")?tempoStr.split(":").reduce((a,b)=>a*60+(+b),0):parseInt(tempoStr,10)*60):0;
+    const motivo=document.getElementById("pf-motivo").value||"";
+    const obs=document.getElementById("pf-obs").value||"";
+    // descobre o modelo: usa o já registrado, senão procura no DIAG
+    const modelo=(painelReg[ref]&&painelReg[ref].modelo) || (typeof DIAG_BALANCOS!=="undefined"&&(DIAG_BALANCOS.find(d=>d.ref===ref)||{}).modelo) || null;
+    const antes=modelo?dominioModelo(modelo):null;
+    registrarQuestao(ref,{resp,gab,correta:(resp&&gab&&resp===gab),confianca:conf,tempoSeg,motivoErro:motivo,obs,modelo});
+    // também alimenta o banco (respostas) se a questão existir lá
+    if(typeof BANCO!=="undefined" && BANCO.some(q=>q.prova+"-"+q.n===ref) && resp){
+      respostas[ref]={letra:resp,certo:resp===gab}; save(LS_RESP,respostas);
+    }
+    const depois=modelo?dominioModelo(modelo):null;
+    let msg=`✅ ${ref} registrada.`;
+    if(antes&&depois&&antes.label!==depois.label) msg+=` Modelo "${(MODELOS.balancos.modelos.find(x=>x.id===modelo)||{}).nome||modelo}" mudou de ${antes.label} → ${depois.label}.`;
+    renderPainel(); renderHome();
+    const mEl=document.getElementById("pf-msg"); if(mEl) mEl.textContent=msg;
+  };
+}
+const TITULOS={dash:"Home",painel:"Painel de Execução",edital:"Edital Verticalizado",estrategia:"Estratégia Ninja",agenda:"Calendário de Estudos",crono:"Cronograma",provas:"Refazer Provas",banco:"Banco de Questões",desempenho:"Meu Desempenho",tatica:"Tática de Prova",analise:"Análise das Provas",erros:"Caderno de Erros"};
 
 /* ---------- navegação ---------- */
 document.querySelectorAll("#nav button").forEach(b=>{
@@ -24,6 +277,7 @@ document.querySelectorAll("#nav button").forEach(b=>{
     document.getElementById(b.dataset.s).classList.add("active");
     document.getElementById("topbar-title").textContent=TITULOS[b.dataset.s]||"";
     if(b.dataset.s==="dash") renderHome();
+    if(b.dataset.s==="painel") renderPainel();
     if(b.dataset.s==="agenda") renderAgenda();
     if(b.dataset.s==="banco"){ filtroDiaQuestoes=null; filtroDiaRotulo=""; renderFiltrosBanco(); renderBanco(); }
     if(b.dataset.s==="provas") renderProvas();

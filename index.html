@@ -55,6 +55,11 @@
   .mcard .big.verde{color:var(--verde)}.mcard .big.azul{color:var(--azul)}.mcard .big.amarelo{color:var(--amarelo)}.mcard .big.vermelho{color:var(--vermelho)}
   .mcard .note{font-size:.76rem;color:var(--txt3);margin-top:2px}
 
+  /* PAINEL — formulário de registro */
+  .pform{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .pform label{display:flex;flex-direction:column;font-size:.74rem;color:var(--txt2);font-weight:600;gap:3px}
+  .pform input,.pform select{border:1px solid var(--borda);border-radius:7px;padding:6px 8px;font-size:.85rem;background:#fff}
+
   /* PROGRESSO do calendário */
   .prog-wrap{background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:16px 18px;margin-bottom:18px}
   .prog-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px}
@@ -272,6 +277,7 @@
   <div class="count"><div class="d" id="side-dias">—</div><div class="l">dias até 06/12</div></div>
   <nav id="nav">
     <button data-s="dash" class="active"><span class="ico">🏠</span> Home</button>
+    <button data-s="painel"><span class="ico">🎛️</span> Painel de Execução</button>
     <button data-s="edital"><span class="ico">📋</span> Edital</button>
     <button data-s="estrategia"><span class="ico">🥷</span> Estratégia</button>
     <button data-s="agenda"><span class="ico">🗓️</span> Calendário</button>
@@ -336,6 +342,19 @@
       <h3>📅 As 3 fases do mês</h3><div id="estrat-fases"></div>
       <h3>⚔️ As 7 regras de ouro</h3><div id="estrat-regras"></div>
       <h3>🔁 Ordem inteligente das 9 provas</h3><div id="estrat-ordem"></div>
+    </section>
+
+    <!-- PAINEL DE EXECUÇÃO -->
+    <section id="painel">
+      <h2>🎛️ Painel de Execução</h2>
+      <p class="sub">Você registra cada questão (resposta, confiança, tempo, motivo do erro) e o painel recalcula sua meta e seu mapa de domínio. O estudo/correção continua no ChatGPT — aqui é organização e acompanhamento.</p>
+      <div id="painel-hoje" class="cards"></div>
+      <div class="panel"><h3>⚡ Ritmo &amp; previsão</h3><div id="painel-ritmo"></div></div>
+      <div class="panel"><h3>🔴 Prioridade do momento</h3><div id="painel-prioridade"></div></div>
+      <div class="panel"><h3>🗺️ Mapa de domínio por modelo — Balanços</h3><div id="painel-modelos-balancos"></div></div>
+      <div class="panel"><h3>📊 Cobertura de modelos (todas as áreas)</h3><div id="painel-cobertura"></div></div>
+      <div class="panel"><h3>📝 Registrar / atualizar uma questão</h3><div id="painel-form"></div></div>
+      <div class="panel"><h3>🔁 Fila de revisão guiada (Balanços)</h3><div id="painel-revisao"></div></div>
     </section>
 
     <!-- CALENDÁRIO (estilo agenda) -->
@@ -465,15 +484,16 @@
   </main>
 </div>
 
-<script src="dados-edital.js?v=13"></script>
-<script src="dados-estrategia.js?v=13"></script>
-<script src="dados-provas.js?v=13"></script>
-<script src="dados-cronograma.js?v=13"></script>
-<script src="dados-calendario.js?v=13"></script>
-<script src="dados-gerais.js?v=13"></script>
-<script src="dados-questoes.js?v=13"></script>
-<script src="dados-simulados.js?v=13"></script>
-<script src="dados-tatica-prova.js?v=13"></script>
-<script src="app.js?v=13"></script>
+<script src="dados-edital.js?v=14"></script>
+<script src="dados-estrategia.js?v=14"></script>
+<script src="dados-provas.js?v=14"></script>
+<script src="dados-cronograma.js?v=14"></script>
+<script src="dados-calendario.js?v=14"></script>
+<script src="dados-gerais.js?v=14"></script>
+<script src="dados-questoes.js?v=14"></script>
+<script src="dados-painel.js?v=14"></script>
+<script src="dados-simulados.js?v=14"></script>
+<script src="dados-tatica-prova.js?v=14"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
